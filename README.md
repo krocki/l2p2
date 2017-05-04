@@ -12,6 +12,14 @@ Clone the repository and all dependencies (with `git clone --recursive`) or run:
 git submodule update --init --recursive
 ```
 
+Configure and build using CMake
+```
+mkdir build
+cd build
+cmake ..
+make
+```
+
 ## License
 MIT License
 
