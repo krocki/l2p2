@@ -1,5 +1,18 @@
 # l2p2
-low-level parallel primitives
+Low-Level Parallel Primitives
+This is a header-only library
 
-# depends on Eigen
+## Dependencies
+Eigen:
+http://eigen.tuxfamily.org/index.php?title=Main_Page
+OpenCL:
+
+## Compiling tests/benchmarks
+Clone the repository and all dependencies (with `git clone --recursive`)
+Or run:
+```
 git submodule update --init --recursive
+```
+
+### License
+MIT License
