@@ -7,8 +7,7 @@
 
 *This is a header-only library*
 ## Compiling tests/benchmarks
-Clone the repository and all dependencies (with `git clone --recursive`)
-Or run:
+Clone the repository and all dependencies (with `git clone --recursive`) or run:
 ```
 git submodule update --init --recursive
 ```
