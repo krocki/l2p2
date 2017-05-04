@@ -1,11 +1,11 @@
 # l2p2
 **l**ow-**l**evel **p**arallel **p**rimitives
-##### This is a header-only library
 
 ## Dependencies
-[Eigen][1]
-[OpenCL]
+* [Eigen][1]
+* OpenCL
 
+*This is a header-only library*
 ## Compiling tests/benchmarks
 Clone the repository and all dependencies (with `git clone --recursive`)
 Or run:
