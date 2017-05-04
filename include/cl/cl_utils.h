@@ -2,12 +2,12 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-04 08:51:00
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-05-04 09:41:03
+* @Last Modified time: 2017-05-04 15:31:20
 */
 
 /* Various helpers used for managing CL code compilation, etc... */
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/opencl.h>
 #else
 #include <CL/cl.h>
@@ -71,7 +71,7 @@ class clUtils {
 	static std::vector <compute_device_info> listDevices (cl_device_type dev_type = CL_DEVICE_TYPE_ALL);
 	static cl_dev_info getDevice (cl_device_id device);
 	static void devInfo (cl_device_id device, int extended);
-	static void checkError (const cl_int ciErrNum, const char* const operation);
+	static int checkError (const cl_int ciErrNum, const char* const operation);
 	static const char* oclErrorString (cl_int error);
 
 	// static int initResources(cl_resources* res, cl_device_id dev, unsigned int columns, unsigned inputLength, unsigned prox_synapses_per_column);
@@ -199,6 +199,16 @@ cl_dev_info clUtils::getDevice (cl_device_id device) {
 	CL_SAFE_CALL (clGetDeviceInfo (device, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof (found_device.workitem_size), &found_device.workitem_size, NULL) );
 	CL_SAFE_CALL (clGetDeviceInfo (device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof (found_device.workgroup_size), &found_device.workgroup_size, NULL) );
 
+	// Query for a specific type of device or brand
+	/*  bool IsCPU() const { return Type() == "CPU"; }
+	  bool IsGPU() const { return Type() == "GPU"; }
+	  bool IsAMD() const { return Vendor() == "AMD" || Vendor() == "Advanced Micro Devices, Inc." ||
+	                              Vendor() == "AuthenticAMD";; }
+	  bool IsNVIDIA() const { return Vendor() == "NVIDIA" || Vendor() == "NVIDIA Corporation"; }
+	  bool IsIntel() const { return Vendor() == "INTEL" || Vendor() == "Intel" ||
+	                                Vendor() == "GenuineIntel"; }
+	  bool IsARM() const { return Vendor() == "ARM"; }
+	  */
 	return found_device;
 }
 
@@ -238,13 +248,7 @@ void clUtils::devInfo (cl_device_id device, int extended) {
 	CL_SAFE_CALL (clGetDeviceInfo (device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof (compute_units), &compute_units, NULL) );
 	printf ("\t\t\tCL_DEVICE_MAX_COMPUTE_UNITS = %u\n", compute_units);
 	// CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS
-	size_t          workitem_dims;
-	CL_SAFE_CALL (clGetDeviceInfo (device, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof (workitem_dims), &workitem_dims, NULL) );
-	printf ("\t\t\tCL_DEVICE_MAX_WORK_ITEM_DIMENSIONS = %u\n", (unsigned) workitem_dims);
-	// CL_DEVICE_MAX_WORK_ITEM_SIZES
-	size_t          workitem_size[3];
-	CL_SAFE_CALL (clGetDeviceInfo (device, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof (workitem_size), &workitem_size, NULL) );
-	printf ("\t\t\tCL_DEVICE_MAX_WORK_ITEM_SIZES = %u / %u / %u \n", (unsigned) workitem_size[0], (unsigned) workitem_size[1], (unsigned) workitem_size[2]);
+
 	// CL_DEVICE_MAX_WORK_GROUP_SIZE
 	size_t          workgroup_size;
 	CL_SAFE_CALL (clGetDeviceInfo (device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof (workgroup_size), &workgroup_size, NULL) );
@@ -473,11 +477,11 @@ clUtils::oclErrorString (cl_int error) {
 
 }
 
-void clUtils::checkError (const cl_int ciErrNum, const char* const operation) {
+int clUtils::checkError (const cl_int ciErrNum, const char* const operation) {
 	if (ciErrNum != CL_SUCCESS) {
 		printf ("ERROR: %s failed, %s, %d\n", operation, clUtils::oclErrorString (ciErrNum), ciErrNum );
-		// exit(EXIT_FAILURE);
-	}
+		return -1;
+	} else return 0;
 }
 
 void check_error (cl_int errcode, const char* msg, ...) {

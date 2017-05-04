@@ -2,11 +2,10 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-03 20:44:37
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-05-04 09:52:59
+* @Last Modified time: 2017-05-04 10:28:21
 */
 
 #include <iostream>
-
 #include <cl/cl_ctx.h>
 
 int init_cl(int dev) {
@@ -19,9 +18,6 @@ int init_cl(int dev) {
 		std::cerr << "opencl init failed ! " << std::endl;
 		return -1;
 	}
-
-	// add_program(std::string program_name, const char* fname, const char* build_flags = "")
-	// add_kernel (std::string kernel_name, std::string program_name)
 
 	return 0;
 

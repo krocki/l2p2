@@ -2,12 +2,37 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-03 20:44:37
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-05-03 21:24:50
+* @Last Modified time: 2017-05-04 14:16:18
 */
 
 #include <iostream>
 
 #include <array/eigen.h>
+#include <cl/cl_ctx.h>
+#include <cl/cl_array.h>
+#include <cl/cl_functions.h>
+
+cl_ctx ocl;
+
+int init_cl(int dev) {
+
+	cl_device_type dev_type = CL_DEVICE_TYPE_ALL;
+
+	ocl.init (dev, dev_type);
+
+	if (!ocl.initialized()) {
+		std::cerr << "opencl init failed ! " << std::endl;
+		return -1;
+	}
+
+	ocl.add_program("reduce", "../include/cl/kernels/reduce.cl");
+	ocl.add_kernel ("max_coeff", "reduce");
+
+	ocl.list_loaded_kernels();
+
+	return 0;
+
+}
 
 template<class T>
 int run_example() {
@@ -30,6 +55,21 @@ int run_example() {
 	            << ", avg: " << e_mean
 	            << std::endl;
 
+	// make an opencl copy of the eigen array
+	cl_array<T> x = cl_array<T> (&ocl, ref);
+	cl_array<T> y = cl_array<T> (&ocl, 1, 1);
+
+	// copy host_data to device
+	x.sync_device();
+
+	// find max in x and store in y
+	cl_reduce (y, x, "max_coeff");
+
+	// copy device data to host
+	y.sync_host();
+
+	std::cout << "cl max_coeff = " << y.ref_host_data << std::endl;
+
 	return 0;
 
 }
@@ -37,6 +77,10 @@ int run_example() {
 int main (int argc, char** argv) {
 
 	try {
+
+		int requested_device = 0;
+		if (argc > 1) requested_device = atoi (argv[1]);
+		init_cl(requested_device);
 
 		run_example<float>();
 

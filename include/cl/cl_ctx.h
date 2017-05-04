@@ -24,12 +24,13 @@ class cl_ctx {
 
 	// there can be multiple programs/kernels per ctx
 	Dict<cl_program> cl_programs;
-	Dict<cl_kernel> cl_kernels;
-	Dict<cl_event> cl_events;
 
 	bool _initialized = false;
 
   public:
+
+	Dict<cl_event> cl_events;
+	Dict<cl_kernel> cl_kernels;
 
 	std::vector <compute_device_info> available_devices;
 
@@ -48,9 +49,11 @@ class cl_ctx {
 	bool get_workgroup_size_from_device = false;
 	size_t local_work_size = 64;
 
+	cl_int err;
 
+	cl_ctx () {};
 
-	cl_ctx (int requested_device = 0, cl_device_type dev_type = CL_DEVICE_TYPE_ALL) { init(requested_device, dev_type); }
+	cl_ctx (int requested_device, cl_device_type dev_type = CL_DEVICE_TYPE_ALL) { init(requested_device, dev_type); }
 
 	// TODO: requested_device_type = GPU/CPU, ...
 	int init (int requested_device = 0, cl_device_type dev_type = CL_DEVICE_TYPE_ALL) {
@@ -82,9 +85,15 @@ class cl_ctx {
 		printf ("device_string: %s\n", current_device_properties.device_string.c_str() );
 		printf ("compute_units: %u\n", current_device_properties.compute_units);
 		printf ("workgroup_size: %zu\n", current_device_properties.workgroup_size);
+		printf ("workitem_size: %zu x %zu x %zu\n",
+		        current_device_properties.workitem_size[0],
+		        current_device_properties.workitem_size[1],
+		        current_device_properties.workitem_size[2]);
+
 		printf ("global_mem_size: %llu\n", (long long unsigned int) current_device_properties.global_mem_size);
 		printf ("local_mem_size: %llu\n", (long long unsigned int) current_device_properties.local_mem_size);
 		printf ("preferred_vector: %u\n", current_device_properties.preferred_vector);
+
 
 		if (zero_copy_mem) {
 			device_mem_alloc_flags = CL_MEM_ALLOC_HOST_PTR;
@@ -101,10 +110,7 @@ class cl_ctx {
 		cl_int err;
 		_ctx = clCreateContext (NULL, 1, &device_in_use, NULL, NULL, &err);
 
-		if (err != CL_SUCCESS) {
-			printf ("clCreateContext() failed with %d\n", err);
-			return -1;
-		}
+		if (clUtils::checkError(err, "cl_ctx: clCreateContext()") != 0) return err;
 
 		/* create command queue */
 		cl_command_queue_properties queue_properties = 0;
@@ -114,11 +120,7 @@ class cl_ctx {
 
 		_queue = clCreateCommandQueue (_ctx, device_in_use, queue_properties, &err);
 
-		if (err != CL_SUCCESS) {
-			printf ("clCreateCommandQueue() failed with %d\n", err);
-			clReleaseContext (_ctx);
-			return -1;
-		}
+		if (clUtils::checkError(err, "cl_ctx: clCreateCommandQueue()") != 0) return err;
 
 		init_cl_libs();
 
@@ -128,11 +130,11 @@ class cl_ctx {
 
 	int add_program(std::string program_name, const char* fname, const char* build_flags = "") {
 
-		printf ("compiling program %s from %s\n", program_name.c_str(), fname);
+		printf ("building program '%s' from file '%s'\n", program_name.c_str(), fname);
 		cl_programs[program_name] = clUtils::compileProgram (fname, _ctx, device_in_use, build_flags);
 
 		if (!cl_programs[program_name]) {
-			printf ("%s (%s) compilation failed\n", program_name.c_str(), fname);
+			printf ("'%s' ('%s') compilation failed\n", program_name.c_str(), fname);
 			return -1;
 		}
 
@@ -142,8 +144,10 @@ class cl_ctx {
 
 	int add_kernel (std::string kernel_name, std::string program_name) {
 
+		printf ("compiling kernel '%s' from program '%s'\n", kernel_name.c_str(), program_name.c_str());
+
 		if (!cl_programs[program_name]) {
-			printf ("program %s does not exist\n", program_name.c_str());
+			printf ("program '%s' does not exist\n", program_name.c_str());
 			return -1;
 		}
 
@@ -151,7 +155,7 @@ class cl_ctx {
 		cl_kernels[kernel_name] = clCreateKernel (cl_programs[program_name], kernel_name.c_str(), &err);
 
 		if (err != CL_SUCCESS) {
-			printf ("clCreateKernel failed with %d, program: %s, kernel %s\n", err, program_name.c_str(), kernel_name.c_str());
+			printf ("clCreateKernel failed with %d, program: '%s', kernel '%s'\n", err, program_name.c_str(), kernel_name.c_str());
 			return -1;
 		}
 
@@ -174,6 +178,18 @@ class cl_ctx {
 		// destroy_clrng();
 		//  Finalize work with clblas.
 		// CL_BLAS_TEARDOWN();
+
+	}
+
+	void list_loaded_kernels() {
+
+		std::cout << "loaded programs: " << std::endl;
+		for (size_t i = 0; i < cl_programs.entries.size(); i++)
+			std::cout << i << ": " << cl_programs.reverse_namemap[i] << std::endl;
+
+		std::cout << "loaded kernels: " << std::endl;
+		for (size_t i = 0; i < cl_kernels.entries.size(); i++)
+			std::cout <<  i << ": " << cl_kernels.reverse_namemap[i] << std::endl;
 
 	}
 
