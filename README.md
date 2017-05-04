@@ -1,5 +1,5 @@
 # l2p2
-[b]L[/b]ow-Level Parallel Primitives
+**l**ow-**l**evel **p**arallel **p**rimitives
 ##### This is a header-only library
 
 ## Dependencies
@@ -13,7 +13,7 @@ Or run:
 git submodule update --init --recursive
 ```
 
-### License
+## License
 MIT License
 
 [1]: http://eigen.tuxfamily.org
