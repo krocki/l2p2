@@ -4,3 +4,9 @@
 [submodule "ext/arrayfire"]
 	path = ext/arrayfire
 	url = https://github.com/arrayfire/arrayfire
+[submodule "ext/clRNG"]
+	path = ext/clRNG
+	url = git@github.com:clMathLibraries/clRNG.git
+[submodule "ext/clProbDist"]
+	path = ext/clProbDist
+	url = git@github.com:krocki/clProbDist.git

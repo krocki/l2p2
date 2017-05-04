@@ -9,6 +9,14 @@ if (NOT IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/ext/eigen/Eigen")
     "by calling \"git submodule update --init --recursive\"")
 endif()
 
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+find_package(OpenCL)
+
+message(STATUS "OpenCL found: ${OPENCL_FOUND}")
+message(STATUS "OpenCL includes: ${OPENCL_INCLUDE_DIRS}")
+message(STATUS "OpenCL CXX includes: ${OPENCL_HAS_CPP_BINDINGS}")
+message(STATUS "OpenCL libraries: ${OPENCL_LIBRARIES}")
+
 option(L2P2_BUILD_EXAMPLE "Build l2p2 examples?" ON)
 option(L2P2_BUILD_TESTS "Build l2p2 tests?" ON)
 option(L2P2_BUILD_BENCHMARKS "Build l2p2 benchmarks?" ON)
@@ -35,13 +43,15 @@ if (NOT L2P2_INCLUDE_DIR)
   list(APPEND L2P2_EXTRA_INCS "${L2P2_INCLUDE_DIR}")
 endif()
 
-include_directories(${L2P2_EIGEN_INCLUDE_DIR} include ${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${L2P2_EIGEN_INCLUDE_DIR} ${OPENCL_INCLUDE_DIRS} ${OPENCL_HAS_CPP_BINDINGS} include ${CMAKE_CURRENT_BINARY_DIR})
 
 add_definitions(${L2P2_EXTRA_DEFS})
 
 if(L2P2_BUILD_EXAMPLE)
   add_executable(example_reduce src/examples/reduce.cc)
+  add_executable(example_initcl src/examples/initcl.cc)
   target_link_libraries(example_reduce ${L2P2_EXTRA_LIBS})
+  target_link_libraries(example_initcl ${L2P2_EXTRA_LIBS} ${OPENCL_LIBRARIES})
 endif()
 
 if(L2P2_BUILD_TESTS)
