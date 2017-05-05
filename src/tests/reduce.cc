@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-03 20:44:37
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-05-04 19:20:55
+* @Last Modified time: 2017-05-05 13:55:40
 */
 
 #include <iostream>
@@ -73,7 +73,7 @@ int run_test(size_t rows, size_t cols, std::string op) {
 	T err = std::abs((y.ref_host_data(0) - e_max));
 
 	const std::string color = (err > 1e-3f) ? ANSI_COLOR_RED : err > 1e-7f ? ANSI_COLOR_YELLOW : "";
-	const std::string keep = (err > 1e-7f) ? "\n" : "\r";
+	const std::string keep = "\n"; //(err > 1e-7f) ? "\n" : "\r";
 
 	const std::string message = color + "[ reduce test: op = '" + op + "', size = " + std::to_string(rows) + " x " + std::to_string(cols) + " ( " + std::to_string (rows * cols) + " ) " + " ] ---> e_max: " + std::to_string(e_max) + ", cl max: " + std::to_string(y.ref_host_data(0)) + ", ERR: " + std::to_string(err) + ANSI_COLOR_RESET + "; " + cl_config_string + keep;
 
@@ -91,12 +91,12 @@ int main (int argc, char** argv) {
 		if (argc > 1) requested_device = atoi (argv[1]);
 		init_cl(requested_device);
 
-		size_t full_range_min = 1;
-		size_t full_range_inc = 32;
-		size_t full_range_max = 2048;
-		size_t rand_range_min = 1;
-		size_t rand_range_max = 2048;
-		size_t rand_iters = 1000000;
+		// size_t full_range_min = 1;
+		// size_t full_range_inc = 32;
+		// size_t full_range_max = 2048;
+		// size_t rand_range_min = 1;
+		// size_t rand_range_max = 2048;
+		size_t rand_iters = 1000;
 
 		//run all sizes for a given range (full_range_min-full_range_max) x (full_range_min-full_range_max)
 		// for (size_t r = full_range_min; r < full_range_max; r += full_range_inc)
@@ -104,11 +104,29 @@ int main (int argc, char** argv) {
 		// 		run_test<float> (r, c, "max_coeff");
 
 		// rand tests
+		run_test<float> (1, 1024, "max_coeff");
+		run_test<float> (1024, 1, "max_coeff");
+		run_test<float> (3, 17, "max_coeff");
+		run_test<float> (123, 522, "max_coeff");
+		run_test<float> (1024, 1024, "max_coeff");
+		run_test<float> (2048, 1024, "max_coeff");
+		run_test<float> (2048, 2048, "max_coeff");
+		run_test<float> (2500, 2048, "max_coeff");
+		run_test<float> (2000, 2500, "max_coeff");
+		run_test<float> (1, 4000, "max_coeff");
+		run_test<float> (10, 4000, "max_coeff");
+		run_test<float> (4000, 1, "max_coeff");
+		run_test<float> (4000, 100, "max_coeff");
+		run_test<float> (4000, 1000, "max_coeff");
+		run_test<float> (1000, 4000, "max_coeff");
+		run_test<float> (3000, 3000, "max_coeff");
+
 		for (size_t num = 0; num < rand_iters; num++) {
-			run_test<float> (randi<size_t>(rand_range_min, rand_range_max),
-			                 randi<size_t>(rand_range_min, rand_range_max),
-			                 "max_coeff");
+
+			run_test<float> (randi<size_t>(1, 6000), randi<size_t>(1, 6000), "max_coeff");
+
 		}
+		//}
 
 	} catch (const std::runtime_error &e ) {
 

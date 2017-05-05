@@ -47,7 +47,10 @@ class cl_ctx {
 	cl_mem_flags device_mem_alloc_flags = CL_MEM_READ_WRITE;
 
 	bool get_workgroup_size_from_device = false;
+	bool get_num_workgroups_from_device = false;
+
 	size_t local_work_size = 64;
+	size_t num_workgroups = 20;
 
 	cl_int err;
 
@@ -103,7 +106,11 @@ class cl_ctx {
 			local_work_size = current_device_properties.workgroup_size;
 		}
 
-		const std::string color_message = "\x1b[33m[ workgroup_size = " + std::to_string (local_work_size) + " ]\x1b[0m\n";
+		if (get_num_workgroups_from_device) {
+			num_workgroups = current_device_properties.compute_units * 4;
+		}
+
+		const std::string color_message = "\x1b[33m[ workgroup_size = " + std::to_string (local_work_size) + " ]\x1b[0m\n" + "\x1b[33m[ num_workgroups = " + std::to_string (num_workgroups) + " ]\x1b[0m\n";
 		std::cout << std::endl << color_message << std::endl;
 
 		//props[1] = (cl_context_properties)platform;

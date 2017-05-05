@@ -1,3 +1,6 @@
+#pragma OPENCL EXTENSION cl_khr_global_int32_base_atomics : enable
+#pragma OPENCL EXTENSION cl_khr_local_int32_base_atomics : enable
+
 #define ZERO 0
 #define ONE 1
 #define SMALLEST -1.0e37f
@@ -26,75 +29,71 @@
 #define logistic_function(x) (1.0f / ( 1.0f + exp ( -(x) ) ))
 #endif
 
-#ifndef REDUCTION_1_LOCAL_SIZE
-#define REDUCTION_1_LOCAL_SIZE 64     // The local work-group size of the main kernel
-#endif
-#ifndef REDUCTION_2_LOCAL_SIZE
-#define REDUCTION_2_LOCAL_SIZE 64     // The local work-group size of the epilogue kernel
-#endif
-#ifndef ELEMENTWISE_LOCAL_SIZE
-#define ELEMENTWISE_LOCAL_SIZE 64
+#ifndef REDUCTION_WORKGROUP_SIZE
+#define REDUCTION_WORKGROUP_SIZE 64
 #endif
 
+#ifndef ELEMENTWISE_LOCAL_SIZE
+#define ELEMENTWISE_LOCAL_SIZE 128
+#endif
+
+//Function to perform the atomic max
+inline void AtomicMax(volatile __global float *source, const float operand) {
+	union {
+		unsigned int intVal;
+		float floatVal;
+	} newVal;
+	union {
+		unsigned int intVal;
+		float floatVal;
+	} prevVal;
+	do {
+		prevVal.floatVal = *source;
+		newVal.floatVal = max(prevVal.floatVal, operand);
+	} while (atomic_cmpxchg((volatile __global unsigned int *)source, prevVal.intVal, newVal.intVal) != prevVal.intVal);
+}
+
 //TODO: test, try changing localsize1, localsize2
-#define REDUCTION_BODY(initval, localsize1, localsize2, tempbuf, out) { \
+//local reduction + atomic global reduction
+//larger REDUCTION_WORKGROUP_SIZE means fewer atomic ops
+#define REDUCTION_BODY(initval, localsize1, localsize2, out) { \
 						__local float maxlm[(localsize1)]; \
-						__local float maxgm[(localsize2)]; \
-						maxlm[lid] = xgm[id]; \
+						\
+						while (id < n) { \
+							float x = xgm[id]; \
+							if (x >= maxval) { \
+								maxval = x; \
+							} \
+							id += (localsize1) * num_groups; \
+						} \
+						maxlm[lid] = maxval; \
 						barrier(CLK_LOCAL_MEM_FENCE); \
-						for (unsigned int s = (localsize1) / 2; s > 0; s = s / 2) { \
-							if (lid < s && (id+s) < n) { \
-							maxlm[lid] = fmax(maxlm[lid + s], maxlm[lid]); \
-							barrier(CLK_LOCAL_MEM_FENCE); \
-							} \
-						} \
+					  	for (int s=(localsize1)/2; s>0; s=s>>1) { \
+					    	if (lid <= s) { \
+					      		if (maxlm[lid + s] >= maxlm[lid]) { \
+					        		maxlm[lid] = maxlm[lid + s]; \
+					      		} \
+					    	} \
+					    	barrier(CLK_LOCAL_MEM_FENCE); \
+					    	\
+					  	} \
 						if (lid == 0) { \
-							tempbuf[id] = maxlm[lid]; \
+							AtomicMax(&out[0], maxlm[0]); \
 						} \
-						barrier(CLK_GLOBAL_MEM_FENCE); \
-						maxgm[0] = maxlm[0]; \
-						if (n > (localsize1)) { \
-							int iters = num_groups / (localsize2); \
-							if (id < localsize2) { \
-								for (int ii = 0; ii <= iters; ii++) { \
-									unsigned int memloc = (lid + (ii * (localsize2))) * (localsize1); \
-									if (memloc < n) { \
-										float gval = tempbuf[memloc]; \
-										maxgm[lid] = ii == 0 ? gval : fmax(maxgm[lid], gval); \
-										barrier(CLK_LOCAL_MEM_FENCE); \
-									} \
-								} \
-								for (int s = (localsize2) / 2; s > 0; s = s >> 1) { \
-									if (lid < s && (id+s) < n) { \
-										if (lid < num_groups && (id+s) < num_groups) { \
-										maxgm[lid] = fmax(maxgm[lid + s], maxgm[lid]); \
-										} \
-										barrier(CLK_LOCAL_MEM_FENCE); \
-									} \
-								} \
-							} \
-						} \
-						if (id == 0) { tempbuf[0] = maxgm[0]; } \
-						barrier(CLK_GLOBAL_MEM_FENCE); \
-						(out) = tempbuf[0]; \
+			\
 		}
 
 
 __kernel void max_coeff (__global float * restrict y, __global float * restrict xgm, const unsigned int n, __global float * restrict scratchbuf) {
 
 	const unsigned int lid = get_local_id(0);
-	const unsigned int id = get_global_id(0);
 	const unsigned int wgid = get_group_id(0);
+	unsigned int id = wgid * REDUCTION_WORKGROUP_SIZE + lid; //get_global_id(0);
 	const unsigned int num_groups = get_num_groups(0);
 
 	float maxval = SMALLEST;
 
-	if (id < n) {
+	REDUCTION_BODY(maxval, REDUCTION_WORKGROUP_SIZE, WGS2, y)
 
-		REDUCTION_BODY(maxval, REDUCTION_1_LOCAL_SIZE, REDUCTION_2_LOCAL_SIZE, scratchbuf, maxval)
-
-	}
-
-	if (id == 0) { y[0] = maxval; }
 
 }

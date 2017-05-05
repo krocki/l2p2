@@ -102,6 +102,15 @@ class cl_array {
 
 	cl_array (const cl_array& other) : cl_array (other.matrix_ctx, other.rows(), other.cols() ) {}
 
+	int set(T _val) {
+
+		T val = T (_val);
+
+
+		CL_SAFE_CALL (clEnqueueFillBuffer (matrix_ctx->queue(), device_data, &val, sizeof (T), 0, length() * sizeof (T), 0, nullptr, &matrix_ctx->cl_events["cl_set_val"]) );
+
+
+	}
 	int setZero () {
 
 		/*		T zero = T (0);
@@ -114,10 +123,12 @@ class cl_array {
 				if ( (!matrix_ctx->asynchronous || wait) || matrix_ctx->profiling_enabled) matrix_ctx->get_profiling_data (func_string);
 
 				matrix_ctx->pdata[func_string].bytes_out += rows() * cols() * sizeof (float);*/
+
 		return 0;
 	}
 
 	int setOnes () {
+
 		/*		T one = T (1);
 				std::string func_string = "cl_array_set_ones";
 

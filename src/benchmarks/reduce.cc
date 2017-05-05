@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-03 20:44:37
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-05-04 22:01:03
+* @Last Modified time: 2017-05-05 12:49:52
 */
 
 #include <iostream>
@@ -110,9 +110,9 @@ int main (int argc, char** argv) {
 		if (argc > 1) requested_device = atoi (argv[1]);
 		init_cl(requested_device);
 
-		size_t full_range_min = 256;
-		size_t full_range_inc = 256;
-		size_t full_range_max = 2048;
+		size_t full_range_min = 1024;
+		size_t full_range_inc = 1024;
+		size_t full_range_max = 8192;
 		size_t rand_range_min = 1;
 		size_t rand_range_max = 2048;
 		size_t rand_iters = 10000;
@@ -122,7 +122,7 @@ int main (int argc, char** argv) {
 			for (size_t c = full_range_min; c <= full_range_max; c += full_range_inc) {
 
 				std::cout << r << ", " << c << std::endl;
-				run_benchmarks<float, 10000> (r, c, "max_coeff");
+				run_benchmarks<float, 100> (r, c, "max_coeff");
 			}
 
 		// rand tests
