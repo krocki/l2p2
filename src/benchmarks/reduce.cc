@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-03 20:44:37
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-05-05 12:49:52
+* @Last Modified time: 2017-05-05 15:10:52
 */
 
 #include <iostream>
@@ -64,7 +64,7 @@ int run_benchmarks(size_t rows, size_t cols, std::string op) {
 	T e_max;
 
 	//do this for a fair comparison
-	bool prealloc_cl_scratchpad = true;
+	bool prealloc_cl_scratchpad = false;
 
 	// make an opencl copy of the eigen array
 	cl_array<T> x = cl_array<T> (&ocl, ref, prealloc_cl_scratchpad);

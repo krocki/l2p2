@@ -29,14 +29,6 @@
 #define logistic_function(x) (1.0f / ( 1.0f + exp ( -(x) ) ))
 #endif
 
-#ifndef REDUCTION_WORKGROUP_SIZE
-#define REDUCTION_WORKGROUP_SIZE 64
-#endif
-
-#ifndef ELEMENTWISE_LOCAL_SIZE
-#define ELEMENTWISE_LOCAL_SIZE 128
-#endif
-
 //Function to perform the atomic max
 inline void AtomicMax(volatile __global float *source, const float operand) {
 	union {
@@ -56,19 +48,20 @@ inline void AtomicMax(volatile __global float *source, const float operand) {
 //TODO: test, try changing localsize1, localsize2
 //local reduction + atomic global reduction
 //larger REDUCTION_WORKGROUP_SIZE means fewer atomic ops
-#define REDUCTION_BODY(initval, localsize1, localsize2, out) { \
-						__local float maxlm[(localsize1)]; \
+#define REDUCTION_BODY_v1(out) { \
+						\
+						float maxval = out[0]; \
 						\
 						while (id < n) { \
 							float x = xgm[id]; \
 							if (x >= maxval) { \
 								maxval = x; \
 							} \
-							id += (localsize1) * num_groups; \
+							id += wsize * num_groups; \
 						} \
 						maxlm[lid] = maxval; \
 						barrier(CLK_LOCAL_MEM_FENCE); \
-					  	for (int s=(localsize1)/2; s>0; s=s>>1) { \
+					  	for (int s=wsize/2; s>0; s=s>>1) { \
 					    	if (lid <= s) { \
 					      		if (maxlm[lid + s] >= maxlm[lid]) { \
 					        		maxlm[lid] = maxlm[lid + s]; \
@@ -83,17 +76,45 @@ inline void AtomicMax(volatile __global float *source, const float operand) {
 			\
 		}
 
+// https://developer.apple.com/library/content/samplecode/OpenCL_Parallel_Reduction_Example/Listings/reduce_float_kernel_cl.html#//apple_ref/doc/uid/DTS40008188-reduce_float_kernel_cl-DontLinkElementID_7
+#define REDUCTION_BODY_v2(out) { \
+						\
+						float maxval = out[0]; \
+						\
+						while (id < n) { \
+							float x = xgm[id]; \
+							if (x >= maxval) { \
+								maxval = x; \
+							} \
+							id += wsize * num_groups; \
+						} \
+						maxlm[lid] = maxval; \
+						barrier(CLK_LOCAL_MEM_FENCE); \
+						\
+					  	for (int s=wsize/2; s>0; s=s>>1) { \
+					    	if (lid <= s) { \
+					      		if (maxlm[lid + s] >= maxlm[lid]) { \
+					        		maxlm[lid] = maxlm[lid + s]; \
+					      		} \
+					    	} \
+					    	barrier(CLK_LOCAL_MEM_FENCE); \
+					    	\
+					  	} \
+						if (lid == 0) { \
+							AtomicMax(&out[0], maxlm[0]); \
+						} \
+			\
+		}
 
-__kernel void max_coeff (__global float * restrict y, __global float * restrict xgm, const unsigned int n, __global float * restrict scratchbuf) {
+__kernel void max_coeff (__global float * restrict y, __global float * restrict xgm, const unsigned int n, __local float *maxlm) {
 
 	const unsigned int lid = get_local_id(0);
 	const unsigned int wgid = get_group_id(0);
-	unsigned int id = wgid * REDUCTION_WORKGROUP_SIZE + lid; //get_global_id(0);
+	const unsigned int wsize = get_local_size (0);
+	unsigned int id = wgid * wsize + lid; //get_global_id(0);
 	const unsigned int num_groups = get_num_groups(0);
 
-	float maxval = SMALLEST;
-
-	REDUCTION_BODY(maxval, REDUCTION_WORKGROUP_SIZE, WGS2, y)
+	REDUCTION_BODY_v2(y)
 
 
 }
