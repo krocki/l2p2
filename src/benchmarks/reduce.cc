@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-03 20:44:37
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-05-05 15:21:07
+* @Last Modified time: 2017-05-05 16:07:04
 */
 
 #include <iostream>
@@ -110,9 +110,9 @@ int main (int argc, char** argv) {
 		if (argc > 1) requested_device = atoi (argv[1]);
 		init_cl(requested_device);
 
-		size_t full_range_min = 1024;
+		size_t full_range_min = 2048;
 		size_t full_range_inc = 1024;
-		size_t full_range_max = 8192;
+		size_t full_range_max = 2048;
 		size_t rand_range_min = 1;
 		size_t rand_range_max = 2048;
 		size_t rand_iters = 10000;
