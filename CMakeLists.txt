@@ -61,5 +61,5 @@ endif()
 
 if(L2P2_BUILD_BENCHMARKS)
   add_executable(benchmark_reduce src/benchmarks/reduce.cc)
-  target_link_libraries(benchmark_reduce ${L2P2_EXTRA_LIBS})
+  target_link_libraries(benchmark_reduce ${L2P2_EXTRA_LIBS} ${OPENCL_LIBRARIES})
 endif()

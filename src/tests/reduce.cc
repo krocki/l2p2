@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-03 20:44:37
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-05-04 15:56:21
+* @Last Modified time: 2017-05-04 19:20:55
 */
 
 #include <iostream>
@@ -38,9 +38,16 @@ int init_cl(int dev) {
 }
 
 template<class T>
-T uniform(T x) {
+T randn(T _mean, T _std) {
 	static std::mt19937 rng;
-	static std::uniform_real_distribution<T> u(-1000000.0f, 1000000.0f);
+	static std::normal_distribution<T> n(_mean, _std);
+	return n(rng);
+}
+
+template<class T>
+T randi(T _min, T _max) {
+	static std::mt19937 rng;
+	static std::uniform_int_distribution<T> u(_min, _max);
 	return u(rng);
 }
 
@@ -49,7 +56,7 @@ int run_test(size_t rows, size_t cols, std::string op) {
 
 	array_t<T> ref(rows, cols);
 
-	ref = ref.unaryExpr(std::ptr_fun(uniform<T>));
+	ref = ref.unaryExpr( [](T) { return randn<T>(0, 1000); });
 
 	T e_max = ref.maxCoeff();
 
@@ -91,17 +98,16 @@ int main (int argc, char** argv) {
 		size_t rand_range_max = 2048;
 		size_t rand_iters = 1000000;
 
-		// run all sizes for a given range (full_range_min-full_range_max) x (full_range_min-full_range_max)
+		//run all sizes for a given range (full_range_min-full_range_max) x (full_range_min-full_range_max)
 		// for (size_t r = full_range_min; r < full_range_max; r += full_range_inc)
 		// 	for (size_t c = full_range_min; c < full_range_max; c += full_range_inc)
 		// 		run_test<float> (r, c, "max_coeff");
 
-		std::mt19937 rng;
-		std::uniform_int_distribution<size_t> u(rand_range_min, rand_range_max);
-
 		// rand tests
 		for (size_t num = 0; num < rand_iters; num++) {
-			run_test<float> (u(rng), u(rng), "max_coeff");
+			run_test<float> (randi<size_t>(rand_range_min, rand_range_max),
+			                 randi<size_t>(rand_range_min, rand_range_max),
+			                 "max_coeff");
 		}
 
 	} catch (const std::runtime_error &e ) {

@@ -193,6 +193,12 @@ class cl_ctx {
 
 	}
 
+	void barrier() {
+
+		clFinish (_queue );
+
+	}
+
 	~cl_ctx() {
 
 		deinit_cl_libs();

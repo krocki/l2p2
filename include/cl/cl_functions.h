@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-04 10:56:35
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-05-04 15:20:31
+* @Last Modified time: 2017-05-04 21:28:55
 */
 
 #ifndef __CL_FUNCTIONS__
