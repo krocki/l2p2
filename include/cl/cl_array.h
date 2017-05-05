@@ -40,6 +40,7 @@ class cl_array {
 	cl_mem d_sum; // sum of elements
 	T h_sum; // host copy of the sum
 
+	bool prealloc_scratchpad = false;
 	unsigned int lenScratchBuf = 0;
 
 	array_t<T> host_data;
@@ -54,18 +55,20 @@ class cl_array {
 	}
 
 	explicit
-	cl_array (cl_ctx* ctx, size_t rows, size_t cols) : cl_array (ctx) {
+	cl_array (cl_ctx* ctx, size_t rows, size_t cols, bool _prealloc_scratchpad = false) : cl_array (ctx) {
 		host_data = array_t<T> (rows, cols);
 		host_data.setZero();
 		ref_host_data = host_data;
+		prealloc_scratchpad = _prealloc_scratchpad;
 		alloc_device_mem();
 
 	};
 
 	explicit
-	cl_array (cl_ctx* ctx, array_t<T>& m) : cl_array (ctx) {
+	cl_array (cl_ctx* ctx, array_t<T>& m, bool _prealloc_scratchpad = false) : cl_array (ctx) {
 		host_data = m;
 		ref_host_data = host_data;
+		prealloc_scratchpad = _prealloc_scratchpad;
 		alloc_device_mem();
 	};
 
@@ -73,6 +76,7 @@ class cl_array {
 		host_data = other.host_data;
 		ref_host_data = host_data;
 		matrix_ctx = other.matrix_ctx;
+		prealloc_scratchpad = other.prealloc_scratchpad;
 		free_device_mem();
 		alloc_device_mem();
 		return *this;
@@ -127,6 +131,23 @@ class cl_array {
 		return 0;
 	}
 
+	int resize_scratchpad() {
+
+		unsigned int N = rows() * cols();
+
+		if (lenScratchBuf < N) {
+			lenScratchBuf = N;
+
+			if (scratchBuf) clReleaseMemObject ( (cl_mem) scratchBuf);
+
+			scratchBuf = clCreateBuffer (matrix_ctx->ctx(), matrix_ctx->device_mem_alloc_flags, (N * sizeof (cl_float)), NULL, &matrix_ctx->err);
+
+			if (clUtils::checkError(matrix_ctx->err, "resize_scratchpad : scratchBuf = clCreateBuffer()") != 0) return matrix_ctx->err;
+		}
+
+		return 0;
+	}
+
 	~cl_array() {
 		free_device_mem();
 	};
@@ -135,6 +156,7 @@ class cl_array {
 
 		cl_alloc_from_matrix (matrix_ctx, device_data, ref_host_data, matrix_ctx->device_mem_alloc_flags);
 		ref_device_data = device_data;
+		if (prealloc_scratchpad) resize_scratchpad();
 
 	}
 

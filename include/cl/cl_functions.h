@@ -2,30 +2,13 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-04 10:56:35
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-05-04 21:28:55
+* @Last Modified time: 2017-05-04 21:54:05
 */
 
 #ifndef __CL_FUNCTIONS__
 #define __CL_FUNCTIONS__
 
 #include <cl/cl_array.h>
-
-int cl_resize_scratchpad(cl_array<float>& m) {
-
-	unsigned int N = m.rows() * m.cols();
-
-	if (m.lenScratchBuf < N) {
-		m.lenScratchBuf = N;
-
-		if (m.scratchBuf) clReleaseMemObject ( (cl_mem) m.scratchBuf);
-
-		m.scratchBuf = clCreateBuffer (m.matrix_ctx->ctx(), m.matrix_ctx->device_mem_alloc_flags, (N * sizeof (cl_float) * 2), NULL, &m.matrix_ctx->err);
-
-		if (clUtils::checkError(m.matrix_ctx->err, "cl_resize_scratchpad : m.scratchBuf = clCreateBuffer()") != 0) return m.matrix_ctx->err;
-	}
-
-	return 0;
-}
 
 /*__kernel void max_coeff (__global float * restrict y, __global float * restrict xgm, const unsigned int n, __global float * restrict scratchbuf) */
 
@@ -41,7 +24,7 @@ std::string cl_reduce (cl_array<float>& y, cl_array<float>& x, std::string reduc
 	if (__ctx == nullptr)
 		std::cout << "cl_ctx* is null: " << __FILE__ << ", line: " << __LINE__ << std::endl;
 
-	cl_resize_scratchpad(x);
+	x.resize_scratchpad();
 
 	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[reduce_op], 0, sizeof (cl_mem), (void*) &y.ref_device_data) );
 	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[reduce_op], 1, sizeof (cl_mem), (void*) &x.ref_device_data) );

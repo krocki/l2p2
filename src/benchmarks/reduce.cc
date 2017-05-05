@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-03 20:44:37
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-05-04 21:38:56
+* @Last Modified time: 2017-05-04 22:01:03
 */
 
 #include <iostream>
@@ -19,6 +19,8 @@
 
 cl_ctx ocl;
 profiling_type prof_enabled = CPU_ONLY;
+unsigned long total_runs = 0L;
+unsigned long total_errors = 0L;
 
 int init_cl(int dev) {
 
@@ -61,15 +63,18 @@ int run_benchmarks(size_t rows, size_t cols, std::string op) {
 	ref = ref.unaryExpr( [](T) { return randn<T>(0, 1000); });
 	T e_max;
 
+	//do this for a fair comparison
+	bool prealloc_cl_scratchpad = true;
+
+	// make an opencl copy of the eigen array
+	cl_array<T> x = cl_array<T> (&ocl, ref, prealloc_cl_scratchpad);
+	cl_array<T> y = cl_array<T> (&ocl, 1, 1);
+
+	x.sync_device();
+
 	for (size_t k = 0; k < iters; k++) {
 
 		_TIMED_CALL_(e_max = ref.maxCoeff(), "reduce_" + op + string_format ("_r%zu_c%zu", rows, cols));
-
-		// make an opencl copy of the eigen array
-		cl_array<T> x = cl_array<T> (&ocl, ref);
-		cl_array<T> y = cl_array<T> (&ocl, 1, 1);
-
-		x.sync_device();
 
 		std::string cl_config_string;
 		_CL_TIMED_CALL_(cl_config_string = cl_reduce (y, x, op), ocl, "cl_reduce_" + op + string_format ("_r%zu_c%zu", rows, cols));
@@ -83,11 +88,15 @@ int run_benchmarks(size_t rows, size_t cols, std::string op) {
 
 		const std::string message = (err > 1e-3f) ? (color + "[ reduce test: op = '" + op + "', size = " + std::to_string(rows) + " x " + std::to_string(cols) + " ( " + std::to_string (rows * cols) + " ) " + " ] ---> e_max: " + std::to_string(e_max) + ", cl max: " + std::to_string(y.ref_host_data(0)) + ", ERR: " + std::to_string(err) + ANSI_COLOR_RESET + "; " + cl_config_string + keep) : "";
 
+		total_runs++;
+		total_errors += err > 1e-6f ? 1 : 0;
+
 		std::cout << message;
-		show_profiling_data(pdata, SORT_BY_TIME_DESC, prof_enabled, false);
+
 	}
 
-
+	show_profiling_data(pdata, SORT_BY_TIME_DESC, prof_enabled, false);
+	std::cout << "errors: " << total_errors << "/" << total_runs << std::endl;
 
 	return 0;
 
@@ -113,7 +122,7 @@ int main (int argc, char** argv) {
 			for (size_t c = full_range_min; c <= full_range_max; c += full_range_inc) {
 
 				std::cout << r << ", " << c << std::endl;
-				run_benchmarks<float, 1000> (r, c, "max_coeff");
+				run_benchmarks<float, 10000> (r, c, "max_coeff");
 			}
 
 		// rand tests
