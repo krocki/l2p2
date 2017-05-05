@@ -77,6 +77,10 @@ inline void AtomicMax(volatile __global float *source, const float operand) {
 		}
 
 // https://developer.apple.com/library/content/samplecode/OpenCL_Parallel_Reduction_Example/Listings/reduce_float_kernel_cl.html#//apple_ref/doc/uid/DTS40008188-reduce_float_kernel_cl-DontLinkElementID_7
+
+//fixed 128 for now
+//#define GROUP_SIZE 128
+// manual unroll
 #define REDUCTION_BODY_v2(out) { \
 						\
 						float maxval = out[0]; \
@@ -90,7 +94,42 @@ inline void AtomicMax(volatile __global float *source, const float operand) {
 						} \
 						maxlm[lid] = maxval; \
 						barrier(CLK_LOCAL_MEM_FENCE); \
+						if (lid < 64) { maxlm[lid] = fmax(maxlm[lid], maxlm[lid + 64]); } \
+						barrier(CLK_LOCAL_MEM_FENCE); \
+						if (lid < 32) { maxlm[lid] = fmax(maxlm[lid], maxlm[lid + 32]); } \
+						barrier(CLK_LOCAL_MEM_FENCE); \
+						if (lid < 16) { maxlm[lid] = fmax(maxlm[lid], maxlm[lid + 16]); } \
+						barrier(CLK_LOCAL_MEM_FENCE); \
+						if (lid < 8) { maxlm[lid] = fmax(maxlm[lid], maxlm[lid + 8]); } \
+						barrier(CLK_LOCAL_MEM_FENCE); \
+						if (lid < 4) { maxlm[lid] = fmax(maxlm[lid], maxlm[lid + 4]); } \
+						barrier(CLK_LOCAL_MEM_FENCE); \
+						if (lid < 2) { maxlm[lid] = fmax(maxlm[lid], maxlm[lid + 2]); } \
+						barrier(CLK_LOCAL_MEM_FENCE); \
+						if (lid < 1) { maxlm[lid] = fmax(maxlm[lid], maxlm[lid + 1]); } \
+						barrier(CLK_LOCAL_MEM_FENCE); \
 						\
+						if (lid == 0) { \
+							AtomicMax(&out[0], maxlm[0]); \
+						} \
+			\
+		}
+
+#define REDUCTION_BODY_v3(out) { \
+						\
+						float maxval = out[0]; \
+						\
+						while (id < n) { \
+							float x = xgm[id]; \
+							if (x >= maxval) { \
+								maxval = x; \
+							} \
+							id += wsize * num_groups; \
+						} \
+						maxlm[lid] = maxval; \
+						barrier(CLK_LOCAL_MEM_FENCE); \
+						\
+						_Pragma("unroll") \
 					  	for (int s=wsize/2; s>0; s=s>>1) { \
 					    	if (lid <= s) { \
 					      		if (maxlm[lid + s] >= maxlm[lid]) { \
