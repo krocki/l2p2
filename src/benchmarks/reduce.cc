@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-03 20:44:37
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-05-05 15:10:52
+* @Last Modified time: 2017-05-05 15:21:07
 */
 
 #include <iostream>
@@ -122,7 +122,7 @@ int main (int argc, char** argv) {
 			for (size_t c = full_range_min; c <= full_range_max; c += full_range_inc) {
 
 				std::cout << r << ", " << c << std::endl;
-				run_benchmarks<float, 100> (r, c, "max_coeff");
+				run_benchmarks<float, 1000> (r, c, "max_coeff");
 			}
 
 		// rand tests
