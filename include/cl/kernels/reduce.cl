@@ -135,13 +135,16 @@ inline void AtomicMax(volatile __global float *source, const float operand) {
 						} \
 			\
 		}
+// float4 doesn't produce correct results on radeon:
+//float4 x = (float4){xgm[vid], xgm[vid+1], xgm[vid+2], xgm[vid+3]};
 //TODO: vloadn
+// float4 x = vload4(0, xgm + vid);
 #define REDUCTION_BODY_v1_f4(out) { \
 						\
 						float4 maxval = (float4){out[0], out[0], out[0], out[0]}; \
 						\
 						\
-						while (4*id < n) { \
+						while (vid < n) { \
 							int vid = 4*id; \
 							float4 x = (float4){xgm[vid], xgm[vid+1], xgm[vid+2], xgm[vid+3]}; \
 							maxval = fmax(maxval, x); \
@@ -157,7 +160,7 @@ inline void AtomicMax(volatile __global float *source, const float operand) {
 					    	\
 					  	} \
 						if (lid == 0) { \
-							float vmax = fmax(fmax(maxlm[0].x, maxlm[0].y), fmax(maxlm[0].w, maxlm[0].z)); \
+							float vmax = fmax(fmax(maxlm[0].s0, maxlm[0].s1), fmax(maxlm[0].s2, maxlm[0].s3)); \
 							AtomicMax(&out[0], vmax); \
 \
 						} \
@@ -203,7 +206,7 @@ inline void AtomicMax(volatile __global float *source, const float operand) {
 // 6. atomics/no atomics
 // 7. lmem/no lmem (read/write to gmem)
 
-__kernel void max_coeff_f1 (__global float * restrict y, __global float * restrict xgm, const unsigned int n, __local float *maxlm) {
+__kernel void max_coeff_f4 (__global float * restrict y, __global float * restrict xgm, const unsigned int n, __local float4 *maxlm) {
 
 	const unsigned int lid = get_local_id(0);
 	const unsigned int wgid = get_group_id(0);
@@ -212,7 +215,7 @@ __kernel void max_coeff_f1 (__global float * restrict y, __global float * restri
 	unsigned int id = wgid * wsize + lid; //get_global_id(0);
 	const unsigned int num_groups = get_num_groups(0);
 
-	REDUCTION_BODY_v1(y)
+	REDUCTION_BODY_v1_f4(y)
 
 }
 
@@ -230,7 +233,7 @@ __kernel void max_coeff_f8 (__global float * restrict y, __global float * restri
 
 }
 
-__kernel void max_coeff (__global float * restrict y, __global float * restrict xgm, const unsigned int n, __local float4 *maxlm) {
+__kernel void max_coeff (__global float * restrict y, __global float * restrict xgm, const unsigned int n, __local float *maxlm) {
 
 	const unsigned int lid = get_local_id(0);
 	const unsigned int wgid = get_group_id(0);
@@ -239,7 +242,7 @@ __kernel void max_coeff (__global float * restrict y, __global float * restrict 
 	unsigned int id = wgid * wsize + lid; //get_global_id(0);
 	const unsigned int num_groups = get_num_groups(0);
 
-	REDUCTION_BODY_v1_f4(y)
+	REDUCTION_BODY_v1(y)
 
 
 }
