@@ -50,7 +50,7 @@ class cl_ctx {
 	bool get_num_workgroups_from_device = false;
 
 	size_t local_work_size = 128;
-	size_t num_workgroups = 64;
+	size_t num_workgroups = 10;
 
 	cl_int err;
 

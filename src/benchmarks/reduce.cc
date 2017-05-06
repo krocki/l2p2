@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-03 20:44:37
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-05-05 16:07:04
+* @Last Modified time: 2017-05-05 20:48:36
 */
 
 #include <iostream>
@@ -57,13 +57,16 @@ T randi(T _min, T _max) {
 }
 
 template<class T, size_t iters>
-int run_benchmarks(size_t rows, size_t cols, std::string op) {
+int run_benchmarks(size_t rows, size_t cols, std::string op, int lsize = 0, int ngroups = 0) {
 
 	array_t<T> ref(rows, cols);
 	ref = ref.unaryExpr( [](T) { return randn<T>(0, 1000); });
 	T e_max;
 
-	//do this for a fair comparison
+	for (size_t k = 0; k < iters; k++) {
+		_TIMED_CALL_(e_max = ref.maxCoeff(), "reduce_" + op + string_format ("_r%zu_c%zu", rows, cols));
+	}
+
 	bool prealloc_cl_scratchpad = false;
 
 	// make an opencl copy of the eigen array
@@ -74,10 +77,8 @@ int run_benchmarks(size_t rows, size_t cols, std::string op) {
 
 	for (size_t k = 0; k < iters; k++) {
 
-		_TIMED_CALL_(e_max = ref.maxCoeff(), "reduce_" + op + string_format ("_r%zu_c%zu", rows, cols));
-
 		std::string cl_config_string;
-		_CL_TIMED_CALL_(cl_config_string = cl_reduce (y, x, op), ocl, "cl_reduce_" + op + string_format ("_r%zu_c%zu", rows, cols));
+		_CL_TIMED_CALL_(cl_config_string = cl_reduce (y, x, op, lsize, ngroups), ocl, "cl_reduce_" + op + string_format ("_r%zu_c%zu", rows, cols));
 
 		y.sync_host();
 
@@ -107,7 +108,12 @@ int main (int argc, char** argv) {
 	try {
 
 		int requested_device = 0;
+		int lsize = 0;
+		int ngroups = 0;
 		if (argc > 1) requested_device = atoi (argv[1]);
+		if (argc > 2) lsize = atoi (argv[2]);
+		if (argc > 3) ngroups = atoi (argv[3]);
+
 		init_cl(requested_device);
 
 		size_t full_range_min = 2048;
@@ -122,7 +128,7 @@ int main (int argc, char** argv) {
 			for (size_t c = full_range_min; c <= full_range_max; c += full_range_inc) {
 
 				std::cout << r << ", " << c << std::endl;
-				run_benchmarks<float, 1000> (r, c, "max_coeff");
+				run_benchmarks<float, 1000> (r, c, "max_coeff", lsize, ngroups);
 			}
 
 		// rand tests

@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-04 10:56:35
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-05-05 15:17:04
+* @Last Modified time: 2017-05-05 20:35:21
 */
 
 #ifndef __CL_FUNCTIONS__
@@ -14,7 +14,7 @@
 
 #define SMALLEST -1.0e37f
 
-std::string cl_reduce (cl_array<float>& y, cl_array<float>& x, std::string reduce_op) {
+std::string cl_reduce (cl_array<float>& y, cl_array<float>& x, std::string reduce_op, size_t lsize = 0, size_t ngroups = 0) {
 
 	unsigned int n = x.rows() * x.cols();
 
@@ -32,8 +32,8 @@ std::string cl_reduce (cl_array<float>& y, cl_array<float>& x, std::string reduc
 	//reset the accumulator
 	y.set(acc_val);
 
-	size_t local_work_size = __ctx->local_work_size;
-	size_t num_workgroups = __ctx->num_workgroups;
+	size_t local_work_size = lsize > 0 ? lsize : __ctx->local_work_size;
+	size_t num_workgroups = ngroups > 0 ? ngroups : __ctx->num_workgroups;
 	size_t global_work_size = local_work_size * num_workgroups;
 	size_t internal_iterations = n / global_work_size + (((n % global_work_size) > 0) ? 1 : 0);
 
