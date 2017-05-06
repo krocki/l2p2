@@ -144,7 +144,7 @@ inline void AtomicMax(volatile __global float *source, const float operand) {
 						float4 maxval = (float4){out[0], out[0], out[0], out[0]}; \
 						\
 						\
-						while (vid < n) { \
+						while (4*id < n) { \
 							int vid = 4*id; \
 							float4 x = (float4){xgm[vid], xgm[vid+1], xgm[vid+2], xgm[vid+3]}; \
 							maxval = fmax(maxval, x); \
