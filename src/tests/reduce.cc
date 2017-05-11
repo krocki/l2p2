@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-03 20:44:37
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-05-05 21:18:07
+* @Last Modified by:   Kamil Rocki
+* @Last Modified time: 2017-05-11 11:27:00
 */
 
 #include <iostream>
@@ -60,8 +60,12 @@ int run_test(size_t rows, size_t cols, std::string op, int lsize = 0, int ngroup
 
 	T e_max = ref.maxCoeff();
 
+	int veclength = 1;
+	int num_threads = lsize * ngroups;
+	int padding = veclength * num_threads;
+
 	// make an opencl copy of the eigen array
-	cl_array<T> x = cl_array<T> (&ocl, ref);
+	cl_array<T> x = cl_array<T> (&ocl, ref, padding);
 	cl_array<T> y = cl_array<T> (&ocl, 1, 1);
 
 	x.sync_device();

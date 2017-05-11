@@ -42,6 +42,9 @@ class cl_array {
 
 	bool prealloc_scratchpad = false;
 	unsigned int lenScratchBuf = 0;
+	size_t padding = 1;
+
+	size_t device_data_size;
 
 	array_t<T> host_data;
 	array_t<T>& ref_host_data;
@@ -55,20 +58,22 @@ class cl_array {
 	}
 
 	explicit
-	cl_array (cl_ctx* ctx, size_t rows, size_t cols, bool _prealloc_scratchpad = false) : cl_array (ctx) {
+	cl_array (cl_ctx* ctx, size_t rows, size_t cols, size_t _pad = 1, bool _prealloc_scratchpad = false) : cl_array (ctx) {
 		host_data = array_t<T> (rows, cols);
 		host_data.setZero();
 		ref_host_data = host_data;
 		prealloc_scratchpad = _prealloc_scratchpad;
+		padding = _pad;
 		alloc_device_mem();
 
 	};
 
 	explicit
-	cl_array (cl_ctx* ctx, array_t<T>& m, bool _prealloc_scratchpad = false) : cl_array (ctx) {
+	cl_array (cl_ctx* ctx, array_t<T>& m, size_t _pad = 1, bool _prealloc_scratchpad = false) : cl_array (ctx) {
 		host_data = m;
 		ref_host_data = host_data;
 		prealloc_scratchpad = _prealloc_scratchpad;
+		padding = _pad;
 		alloc_device_mem();
 	};
 
@@ -77,6 +82,7 @@ class cl_array {
 		ref_host_data = host_data;
 		matrix_ctx = other.matrix_ctx;
 		prealloc_scratchpad = other.prealloc_scratchpad;
+		padding = other.padding;
 		free_device_mem();
 		alloc_device_mem();
 		return *this;
@@ -97,10 +103,10 @@ class cl_array {
 		return ref_host_data.cols();
 	}
 	size_t length() const {
-		return rows() * cols();
+		return device_data_size;
 	}
 
-	cl_array (const cl_array& other) : cl_array (other.matrix_ctx, other.rows(), other.cols() ) {}
+	cl_array (const cl_array& other) : cl_array (other.matrix_ctx, other.rows(), other.cols(), other.padding ) {}
 
 	int set(T _val) {
 
@@ -147,7 +153,9 @@ class cl_array {
 
 	void alloc_device_mem() {
 
-		cl_alloc_from_matrix (matrix_ctx, device_data, ref_host_data, matrix_ctx->device_mem_alloc_flags);
+		std::cout << ref_host_data.rows() * ref_host_data.cols() << std::endl;
+		device_data_size = cl_alloc_from_matrix (matrix_ctx, device_data, ref_host_data, padding, matrix_ctx->device_mem_alloc_flags);
+		std::cout << device_data_size << std::endl;
 		ref_device_data = device_data;
 		if (prealloc_scratchpad) resize_scratchpad();
 
@@ -188,8 +196,12 @@ int cl_copy_device_to_device (cl_ctx* ctx, cl_mem& src, cl_mem& dst, size_t offs
 }
 
 template <typename T = float>
-int cl_alloc_from_matrix (cl_ctx* clctx, cl_mem& buffer, array_t<T>& h, cl_mem_flags flags) {
-	size_t alloc_size = sizeof (T) * h.cols() * h.rows();
+int cl_alloc_from_matrix (cl_ctx* clctx, cl_mem& buffer, array_t<T>& h, size_t padding, cl_mem_flags flags) {
+
+	size_t host_size = h.rows() * h.cols();
+	size_t device_data_size = host_size > 0 ? ((((host_size + padding - 1)) / padding) * padding) : padding;
+
+	size_t alloc_size = sizeof (T) * device_data_size;
 
 	if (clctx == nullptr) {
 		printf ("cl_alloc_from_matrix: clctx == null!\n");
@@ -205,7 +217,7 @@ int cl_alloc_from_matrix (cl_ctx* clctx, cl_mem& buffer, array_t<T>& h, cl_mem_f
 	} else fprintf (stderr, "alloc_matrix: alloc_size <= 0!\n");
 
 	cl_mem_allocated += alloc_size;
-	return 0;
+	return device_data_size;
 }
 
 template <typename T = float>

@@ -100,23 +100,26 @@ class performance_counter {
 		if (total_bytes_in > 0) total_bytes_in_perc = ( (100.0 * (long double) bytes_in) / (long double) total_bytes_in);
 		if (total_bytes_out > 0) total_bytes_out_perc = ( (100.0 * (long double) bytes_out) / (long double) total_bytes_out);
 
-		std::cout << " #" << to_string_with_precision ((double)calls * 1e-3, 5, 3) << "k";
+		std::cout << " #";
+		std::cout << to_string_with_precision ((double)calls * 1e-3, 5, 3) << "k";
 		std::cout << ", time: " << to_string_with_precision (time * 1e-9, m, n) << " s ";
 		std::cout << ", avg: " << to_string_with_precision ((1e-6 * time) / ((double)calls), m, n) << " ms ";
-		std::cout << " / ( " << to_string_with_precision (cl_time_perc, 6, 2) << "% / ";
-		std::cout << to_string_with_precision (total_time_perc, 6, 2) << "% )";
-		std::cout << ", GFlOPs " << to_string_with_precision (flops * 1e-9, m, n) << ", ";
-		std::cout << " ( " << to_string_with_precision (total_flops_perc, 6, 2) << "% )";
+		// std::cout << " / ( " << to_string_with_precision (cl_time_perc, 6, 2) << "% / ";
+		// std::cout << to_string_with_precision (total_time_perc, 6, 2) << "% )";
+		// std::cout << ", GFlOPs " << to_string_with_precision (flops * 1e-9, m, n) << ", ";
+		// std::cout << " ( " << to_string_with_precision (total_flops_perc, 6, 2) << "% )";
 		std::cout << ", GF/s: " << to_string_with_precision (flops / time, m, n) << "/s ";
-		std::cout << ", GB in " << to_string_with_precision (bytes_in * 1e-9, m, n) << ", ";
-		std::cout << "( " << to_string_with_precision (total_bytes_in_perc, 6, 2) << "% )";
-		std::cout << ", GB/s: " << to_string_with_precision (bytes_in / time, m, n) << " ";
-		std::cout << ", GB out " << to_string_with_precision (bytes_out * 1e-9, m, n) << ", ";
-		std::cout << " ( " << to_string_with_precision (total_bytes_out_perc, 6, 2) << "% )";
-		std::cout << ", GB/s: " << to_string_with_precision (bytes_out / time, m, n) << " ";
+		// std::cout << ", GB in " << to_string_with_precision (bytes_in * 1e-9, m, n) << ", ";
+		// std::cout << "( " << to_string_with_precision (total_bytes_in_perc, 6, 2) << "% )";
+		// std::cout << ", GB/s: " << to_string_with_precision (bytes_in / time, m, n) << " ";
+		// std::cout << ", GB out " << to_string_with_precision (bytes_out * 1e-9, m, n) << ", ";
+		// std::cout << " ( " << to_string_with_precision (total_bytes_out_perc, 6, 2) << "% )";
+		// std::cout << ", GB/s: " << to_string_with_precision (bytes_out / time, m, n) << " ";
+		std::cout << ", GB/s: " << to_string_with_precision ((bytes_in + bytes_out) / time, m, n) << " ";
 		std::cout << std::endl;
 	}
 };
+
 void show_profiling_data (Dict<performance_counter>& pdata, sort_method_type sort_method = SORT_BY_TIME_DESC, profiling_type ptype = OFF, bool reset_counters = true) {
 
 	unsigned long total_cl_flops_performed  = 0L;
@@ -205,5 +208,6 @@ void show_profiling_data (Dict<performance_counter>& pdata, sort_method_type sor
 
 
 Dict<performance_counter> pdata;
+profiling_type prof_enabled = CPU_GPU;
 
 #endif /*__PERF_H__*/

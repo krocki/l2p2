@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-03 20:44:37
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-05-05 20:48:36
+* @Last Modified by:   Kamil Rocki
+* @Last Modified time: 2017-05-11 11:25:55
 */
 
 #include <iostream>
@@ -18,7 +18,6 @@
 #include <utils/perf.h>
 
 cl_ctx ocl;
-profiling_type prof_enabled = CPU_ONLY;
 unsigned long total_runs = 0L;
 unsigned long total_errors = 0L;
 
@@ -59,6 +58,8 @@ T randi(T _min, T _max) {
 template<class T, size_t iters>
 int run_benchmarks(size_t rows, size_t cols, std::string op, int lsize = 0, int ngroups = 0) {
 
+	bool profile_cl = true;
+
 	array_t<T> ref(rows, cols);
 	ref = ref.unaryExpr( [](T) { return randn<T>(0, 1000); });
 	T e_max;
@@ -69,8 +70,11 @@ int run_benchmarks(size_t rows, size_t cols, std::string op, int lsize = 0, int 
 
 	bool prealloc_cl_scratchpad = false;
 
+	int veclength = 1;
+	int num_threads = lsize * ngroups;
+	int padding = veclength * num_threads;
 	// make an opencl copy of the eigen array
-	cl_array<T> x = cl_array<T> (&ocl, ref, prealloc_cl_scratchpad);
+	cl_array<T> x = cl_array<T> (&ocl, ref, padding, prealloc_cl_scratchpad);
 	cl_array<T> y = cl_array<T> (&ocl, 1, 1);
 
 	x.sync_device();
@@ -78,7 +82,7 @@ int run_benchmarks(size_t rows, size_t cols, std::string op, int lsize = 0, int 
 	for (size_t k = 0; k < iters; k++) {
 
 		std::string cl_config_string;
-		_CL_TIMED_CALL_(cl_config_string = cl_reduce (y, x, op, lsize, ngroups), ocl, "cl_reduce_" + op + string_format ("_r%zu_c%zu", rows, cols));
+		_CL_TIMED_CALL_(cl_config_string = cl_reduce (y, x, op, lsize, ngroups, profile_cl), ocl, "cl_reduce_" + op + string_format ("_r%zu_c%zu", rows, cols));
 
 		y.sync_host();
 
@@ -96,7 +100,7 @@ int run_benchmarks(size_t rows, size_t cols, std::string op, int lsize = 0, int 
 
 	}
 
-	show_profiling_data(pdata, SORT_BY_TIME_DESC, prof_enabled, false);
+	show_profiling_data(pdata, SORT_BY_TIME_DESC, prof_enabled, true);
 	std::cout << "errors: " << total_errors << "/" << total_runs << std::endl;
 
 	return 0;
@@ -117,7 +121,7 @@ int main (int argc, char** argv) {
 		init_cl(requested_device);
 
 		size_t full_range_min = 2048;
-		size_t full_range_inc = 1024;
+		size_t full_range_inc = 2048;
 		size_t full_range_max = 2048;
 		size_t rand_range_min = 1;
 		size_t rand_range_max = 2048;
@@ -128,15 +132,9 @@ int main (int argc, char** argv) {
 			for (size_t c = full_range_min; c <= full_range_max; c += full_range_inc) {
 
 				std::cout << r << ", " << c << std::endl;
-				run_benchmarks<float, 1000> (r, c, "max_coeff", lsize, ngroups);
+				run_benchmarks<float, 100> (r, c, "max_coeff", lsize, ngroups);
 			}
 
-		// rand tests
-		// for (size_t num = 0; num < rand_iters; num++) {
-		// 	run_benchmarks<float, 1000> (randi<size_t>(rand_range_min, rand_range_max),
-		// 	                             randi<size_t>(rand_range_min, rand_range_max),
-		// 	                             "max_coeff");
-		//}
 
 	} catch (const std::runtime_error &e ) {
 

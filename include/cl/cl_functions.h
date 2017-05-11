@@ -1,22 +1,23 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-04 10:56:35
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-05-05 20:35:21
+* @Last Modified by:   Kamil Rocki
+* @Last Modified time: 2017-05-11 11:29:27
 */
 
 #ifndef __CL_FUNCTIONS__
 #define __CL_FUNCTIONS__
 
 #include <cl/cl_array.h>
+#include <utils/perf.h>
 
 /*__kernel void max_coeff (__global float * restrict y, __global float * restrict xgm, const unsigned int n, __global float * restrict scratchbuf) */
 
 #define SMALLEST -1.0e37f
 
-std::string cl_reduce (cl_array<float>& y, cl_array<float>& x, std::string reduce_op, size_t lsize = 0, size_t ngroups = 0) {
+std::string cl_reduce (cl_array<float>& y, cl_array<float>& x, std::string reduce_op, size_t lsize = 0, size_t ngroups = 0, bool profiling_enabled = false) {
 
-	unsigned int n = x.rows() * x.cols();
+	unsigned int n = x.length();
 
 	std::string cl_config_string = "";
 
@@ -46,9 +47,37 @@ std::string cl_reduce (cl_array<float>& y, cl_array<float>& x, std::string reduc
 
 	std::string func_string = "cl_reduce_" + reduce_op + "_" + std::to_string(n) + "_" + std::to_string(x.rows()) + "x" + std::to_string(x.cols());
 
+	if (profiling_enabled) {
+		clWaitForEvents (1, &__ctx->cl_events[func_string]);
+	}
+
 	/* Execute the kernel */
 	CL_SAFE_CALL (clEnqueueNDRangeKernel (__ctx->queue(), __ctx->cl_kernels[reduce_op], 1, NULL, &global_work_size, &local_work_size, 0, NULL, &__ctx->cl_events[func_string]) );
 
+	if (profiling_enabled) {
+
+		clWaitForEvents (1, &__ctx->cl_events[func_string]);
+
+		cl_ulong time_start, time_end;
+		double total_time;
+
+		//- CL_PROFILING_COMMAND_QUEUED
+		//- CL_PROFILING_COMMAND_SUBMIT
+		//- CL_PROFILING_COMMAND_START
+		//- CL_PROFILING_COMMAND_END
+
+		clGetEventProfilingInfo (__ctx->cl_events[func_string], CL_PROFILING_COMMAND_START, sizeof (time_start), &time_start, NULL);
+		clGetEventProfilingInfo (__ctx->cl_events[func_string], CL_PROFILING_COMMAND_END, sizeof (time_end), &time_end, NULL);
+		total_time = time_end - time_start;
+
+
+		pdata[reduce_op].key = reduce_op;
+		pdata[reduce_op].time += total_time;
+		pdata[reduce_op].calls += 1;
+		pdata[reduce_op].flops += n;
+		pdata[reduce_op].bytes_in += x.length() * sizeof(float);
+		pdata[reduce_op].bytes_out += y.length() * sizeof(float);
+	}
 	return cl_config_string;
 }
 

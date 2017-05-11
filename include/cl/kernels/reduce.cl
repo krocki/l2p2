@@ -41,38 +41,6 @@ inline void AtomicMax(volatile __global float *source, const float operand) {
 	} while (atomic_cmpxchg((volatile __global unsigned int *)source, prevVal.intVal, newVal.intVal) != prevVal.intVal);
 }
 
-//added unrolls
-#define REDUCTION_BODY_v2(out) { \
-						\
-						float maxval = out[0]; \
-						\
-						while (id < n) { \
-							float x = xgm[id]; \
-							if (x >= maxval) { \
-								maxval = x; \
-							} \
-							id += wsize * num_groups; \
-						} \
-						maxlm[lid] = maxval; \
-						barrier(CLK_LOCAL_MEM_FENCE); \
-						\
-						_Pragma("unroll") \
-					  	for (int s=wsize/2; s>0; s=s>>1) { \
-					    	if (lid <= s) { \
-					    		maxlm[lid] = fmax(maxlm[lid + s], maxlm[lid]); \
-					    	} \
-					    	barrier(CLK_LOCAL_MEM_FENCE); \
-					    	\
-					  	} \
-						if (lid == 0) { \
-							AtomicMax(&out[0], maxlm[0]); \
-						} \
-			\
-		}
-
-
-// https://developer.apple.com/library/content/samplecode/OpenCL_Parallel_Reduction_Example/Listings/reduce_float_kernel_cl.html#//apple_ref/doc/uid/DTS40008188-reduce_float_kernel_cl-DontLinkElementID_7
-
 //fixed 128 for now
 //#define GROUP_SIZE 128
 // manual unroll
@@ -110,6 +78,8 @@ inline void AtomicMax(volatile __global float *source, const float operand) {
 			\
 		}
 
+//TODO: there's something wrong when size is 3 x 17
+
 //TODO: test, try changing localsize1, localsize2
 //local reduction + atomic global reduction
 //larger REDUCTION_WORKGROUP_SIZE means fewer atomic ops
@@ -117,14 +87,15 @@ inline void AtomicMax(volatile __global float *source, const float operand) {
 						\
 						float maxval = out[0]; \
 						\
-						while (id < n) { \
-							maxval = fmax(maxval, xgm[id]); \
+						for (int i = 0; i < iters; i++) { \
+							float x = id < n ? xgm[id] : out[0]; \
+							maxval = fmax(maxval, x); \
 							id += gsize; \
 						} \
 						maxlm[lid] = maxval; \
 						barrier(CLK_LOCAL_MEM_FENCE); \
 					  	for (int s=wsize/2; s>0; s=s>>1) { \
-					    	if (lid <= s) { \
+					    	if (lid < s) { \
 								maxlm[lid] = fmax(maxlm[lid + s], maxlm[lid]); \
 					    	} \
 					    	barrier(CLK_LOCAL_MEM_FENCE); \
@@ -135,103 +106,6 @@ inline void AtomicMax(volatile __global float *source, const float operand) {
 						} \
 			\
 		}
-// float4 doesn't produce correct results on radeon:
-//float4 x = (float4){xgm[vid], xgm[vid+1], xgm[vid+2], xgm[vid+3]};
-//TODO: vloadn
-// float4 x = vload4(0, xgm + vid);
-#define REDUCTION_BODY_v1_f4(out) { \
-						\
-						float4 maxval = (float4){out[0], out[0], out[0], out[0]}; \
-						\
-						\
-						while (4*id < n) { \
-							int vid = 4*id; \
-							float4 x = (float4){xgm[vid], xgm[vid+1], xgm[vid+2], xgm[vid+3]}; \
-							maxval = fmax(maxval, x); \
-							id += gsize; \
-						} \
-						maxlm[lid] = maxval; \
-						barrier(CLK_LOCAL_MEM_FENCE); \
-					  	for (int s=wsize/2; s>0; s=s>>1) { \
-					    	if (lid <= s) { \
-								maxlm[lid] = fmax(maxlm[lid + s], maxlm[lid]); \
-					    	} \
-					    	barrier(CLK_LOCAL_MEM_FENCE); \
-					    	\
-					  	} \
-						if (lid == 0) { \
-							float vmax = fmax(fmax(maxlm[0].s0, maxlm[0].s1), fmax(maxlm[0].s2, maxlm[0].s3)); \
-							AtomicMax(&out[0], vmax); \
-\
-						} \
-			\
-		}
-
-#define REDUCTION_BODY_v1_f8(out) { \
-						\
-						float8 maxval = (float8){out[0], out[0], out[0], out[0], out[0], out[0], out[0], out[0]}; \
-						\
-						\
-						while (8*id < n) { \
-							int vid = 8*id; \
-							float8 x = (float8){xgm[vid], xgm[vid+1], xgm[vid+2], xgm[vid+3], xgm[vid+4], xgm[vid+5], xgm[vid+6], xgm[vid+7]}; \
-							maxval = fmax(maxval, x); \
-							id += gsize; \
-						} \
-						maxlm[lid] = maxval; \
-						barrier(CLK_LOCAL_MEM_FENCE); \
-					  	for (int s=wsize/2; s>0; s=s>>1) { \
-					    	if (lid <= s) { \
-								maxlm[lid] = fmax(maxlm[lid + s], maxlm[lid]); \
-					    	} \
-					    	barrier(CLK_LOCAL_MEM_FENCE); \
-					    	\
-					  	} \
-						if (lid == 0) { \
-							float vmax1 = fmax(fmax(maxlm[0].s0, maxlm[0].s1), fmax(maxlm[0].s2, maxlm[0].s3)); \
-							float vmax2 = fmax(fmax(maxlm[0].s4, maxlm[0].s5), fmax(maxlm[0].s6, maxlm[0].s7)); \
-							float vmax = fmax(vmax1, vmax2); \
-							AtomicMax(&out[0], vmax); \
-\
-						} \
-			\
-		}
-
-// tuning params:
-// 1. float vs float2 vs float4 vs float8 vs float16 = {1,2,4,8,16}
-// 2. unroll = {0, 1, 2, 3, ...., all}
-// 3. lsize = {1,2,...max lsize}
-// 4. ngroups = {1, 2, 3, 4, .... compute_units, 2* compute units, ... gsize/lsize}
-// 5. kernel version - v1, v2, v3
-// 6. atomics/no atomics
-// 7. lmem/no lmem (read/write to gmem)
-
-__kernel void max_coeff_f4 (__global float * restrict y, __global float * restrict xgm, const unsigned int n, __local float4 *maxlm) {
-
-	const unsigned int lid = get_local_id(0);
-	const unsigned int wgid = get_group_id(0);
-	const unsigned int wsize = get_local_size (0);
-	const unsigned int gsize = get_global_size (0);
-	unsigned int id = wgid * wsize + lid; //get_global_id(0);
-	const unsigned int num_groups = get_num_groups(0);
-
-	REDUCTION_BODY_v1_f4(y)
-
-}
-
-__kernel void max_coeff_f8 (__global float * restrict y, __global float * restrict xgm, const unsigned int n, __local float8 *maxlm) {
-
-	const unsigned int lid = get_local_id(0);
-	const unsigned int wgid = get_group_id(0);
-	const unsigned int wsize = get_local_size (0);
-	const unsigned int gsize = get_global_size (0);
-	unsigned int id = wgid * wsize + lid; //get_global_id(0);
-	const unsigned int num_groups = get_num_groups(0);
-
-	REDUCTION_BODY_v1_f8(y)
-
-
-}
 
 __kernel void max_coeff (__global float * restrict y, __global float * restrict xgm, const unsigned int n, __local float *maxlm) {
 
@@ -241,8 +115,8 @@ __kernel void max_coeff (__global float * restrict y, __global float * restrict 
 	const unsigned int gsize = get_global_size (0);
 	unsigned int id = wgid * wsize + lid; //get_global_id(0);
 	const unsigned int num_groups = get_num_groups(0);
+	const unsigned int iters = ((n - 1) / gsize) + 1;
 
 	REDUCTION_BODY_v1(y)
-
 
 }
