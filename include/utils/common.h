@@ -122,8 +122,52 @@ std::string subst(std::string in, std::string regexp_in, std::string regexp_out)
 
 }
 
+/*
+#include <regex>
+#include <string>
+using std::regex;
+using std::string;
+using std::sregex_token_iterator;
+. . .
+// Delimiters are spaces (\s) and/or commas
+regex re("[\\s,]+");
+string s = "The White Rabbit,  is very,late.";
+sregex_token_iterator it(s.begin(), s.end(), re, -1);
+sregex_token_iterator reg_end;
+for (; it != reg_end; ++it) {
+     std::cout << it->str() << std::endl;
+}
+*/
+
+std::vector<std::string> tokenize(const std::string& s, const std::string& regex) {
+
+	std::string text = s;
+	// tokenization (non-matched fragments)
+	// Note that regex is matched only two times: when the third value is obtained
+	// the iterator is a suffix iterator.
+	std::regex ws_re("\\s+"); // whitespace
+	std::copy( std::sregex_token_iterator(text.begin(), text.end(), ws_re, -1), std::sregex_token_iterator(), std::ostream_iterator<std::string>(std::cout, "\n"));
+
+	// iterating the first submatches
+	std::string html = "<p><a href=\"http://google.com\">google</a> "
+	                   "< a HREF =\"http://cppreference.com\">cppreference</a>\n</p>";
+	std::regex url_re("<\\s*A\\s+[^>]*href\\s*=\\s*\"([^\"]*)\"", std::regex::icase);
+
+	std::vector<std::string> out;
+
+	std::sregex_token_iterator it ( html.begin(), html.end(), url_re, -1 );
+	std::sregex_token_iterator reg_end;
+
+	for (; it != reg_end; ++it)  {
+		std::cout << it->str() << std::endl;
+		out.push_back(it->str());
+		// std::copy( std::sregex_token_iterator(html.begin(), html.end(), url_re, 1), std::sregex_token_iterator(), std::ostream_iterator<std::string>(std::cout, "\n"));
+	}
+	return out;
+}
+
 //c++ write
-int write_to_file (const char* filename, std::string& content) {
+int write_to_file (const char* filename, std::string & content) {
 
 	std::ofstream file;
 	file.open (filename);
@@ -137,8 +181,16 @@ int write_to_file (const char* filename, std::string& content) {
 std::string read_file(const char* filename) {
 
 	std::ifstream file(filename);
-	std::string prog( std::istreambuf_iterator<char>( file ), ( std::istreambuf_iterator<char>() ) );
-	return prog;
+
+	if (file.is_open()) {
+		std::string prog( std::istreambuf_iterator<char>( file ), ( std::istreambuf_iterator<char>() ) );
+		return prog;
+	} else return (std::string("# could not read : ") + std::string(filename));
+}
+
+std::string read_file(std::string filename) {
+
+	return read_file(filename.c_str());
 }
 
 //c read
@@ -200,7 +252,7 @@ void remove_prefix (std::basic_string<T>& s, const std::basic_string<T>& p) {
 }
 
 
-std::string getFirstWord (std::string& str) {
+std::string getFirstWord (std::string & str) {
 	return str.substr (0, str.find (' ') );
 }
 
@@ -250,7 +302,7 @@ std::string string_format (const std::string fmt_str, ...) {
 
 // taken from
 // http://stackoverflow.com/questions/83439/remove-spaces-from-stdstring-in-c
-std::string delUnnecessary (std::string& str) {
+std::string delUnnecessary (std::string & str) {
 	int size = str.length();
 
 	for (int j = 0; j <= size; j++) {
