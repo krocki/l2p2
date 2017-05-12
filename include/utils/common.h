@@ -14,6 +14,7 @@
 #include <cstring>
 #include <string>
 #include <sstream>
+#include <fstream>
 #include <iomanip>
 #include <stdarg.h>  // For va_start, etc.
 #include <memory>    // For std::unique_ptr
@@ -23,6 +24,8 @@
 #include <chrono>
 #include <numeric>
 #include <algorithm>
+#include <vector>
+#include <regex>
 
 // misc functions
 
@@ -69,6 +72,76 @@ std::string return_current_time_and_date (const char* format = "%x %X") {
 
 // string functions
 
+std::string prefix_line (std::string in, std::string prefix = "") {
+
+	std::string result = "";
+
+	std::istringstream iss(in);
+
+	for (std::string line; std::getline(iss, line); ) {
+		result += prefix + line + "\n";
+	}
+
+	return result;
+}
+
+std::string comment(std::string in) {
+
+	return prefix_line (in, "// ");
+}
+
+std::string indent(std::string in, int level = 1, bool spaces = false) {
+
+	std::string prefix = "";
+	for (int i = 0; i < level; i++) prefix += spaces ? " " : "\t";
+
+	return prefix_line (in, prefix);
+}
+
+std::string subst_char(std::string& in, char x, char y) {
+
+	std::string result = in;
+	// replace all x with y
+	std::replace( result.begin(), result.end(), x, y);
+	return result;
+
+}
+
+// http://en.cppreference.com/w/cpp/regex/regex_replace
+
+std::string subst(std::string in, std::string regexp_in, std::string regexp_out) {
+
+	std::string text = in;
+
+	std::regex vowel_re(regexp_in);
+
+	// construct a string holding the results
+	text = std::regex_replace(text, vowel_re, regexp_out);
+
+	return text;
+
+}
+
+//c++ write
+int write_to_file (const char* filename, std::string& content) {
+
+	std::ofstream file;
+	file.open (filename);
+	file << content;
+	file.close();
+	return 0;
+
+}
+
+//c++ read
+std::string read_file(const char* filename) {
+
+	std::ifstream file(filename);
+	std::string prog( std::istreambuf_iterator<char>( file ), ( std::istreambuf_iterator<char>() ) );
+	return prog;
+}
+
+//c read
 char* readFile (const char* filename, size_t* length) {
 	// locals
 	FILE*           file = NULL;
@@ -114,6 +187,18 @@ void removeSubstrs (std::basic_string<T>& s, const std::basic_string<T>& p) {
 	        i = s.find (p) )
 		s.erase (i, n);
 }
+
+
+template<typename T>
+void remove_prefix (std::basic_string<T>& s, const std::basic_string<T>& p) {
+	typename std::basic_string<T>::size_type n = p.length();
+
+	for (typename std::basic_string<T>::size_type i = s.find (p);
+	        i != std::basic_string<T>::npos;
+	        i = s.find (p) )
+		s.erase (i, n);
+}
+
 
 std::string getFirstWord (std::string& str) {
 	return str.substr (0, str.find (' ') );
