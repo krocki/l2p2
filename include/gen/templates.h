@@ -2,37 +2,13 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-11 12:21:24
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-11 17:14:19
+* @Last Modified time: 2017-05-11 20:09:22
 */
 
 #include <gen/defs.h>
 
 template <class F>
 code_t k_fmap(F f) {
-
-	// code_t debug_info = "";
-
-	// // debug_info += "-----------------\n";
-	// // debug_info += code_t(__FILE__) + ": " + std::to_string(__LINE__) + "\n";
-	// // debug_info += code_t(__PRETTY_FUNCTION__) + "\n";
-	// // debug_info += "-----------------";
-
-	// code_t body = "";
-
-	// body += comment(debug_info) + "\n";
-
-	// var_t in_mem = "in[id]";
-	// var_t out_mem = "out[id]";
-
-	// body += "for (int i = 0; i < $iters; i++) {\n";
-
-	// code_t func_body = f(out_mem, in_mem);
-	// body += indent(func_body);
-
-	// body += "\tid += $stride;\n";
-	// body += "} // for\n";
-
-	// return body;
 
 	code_t body = "";
 	code_t file = code_t(__FILE__);
