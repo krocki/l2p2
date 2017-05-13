@@ -6,5 +6,7 @@
 		fmad(r0, r1, r0); fmad(r1, r0, r1);
 		@out = r1;
 
+		$flops = $flops + 4;
+		
 	}
 }
