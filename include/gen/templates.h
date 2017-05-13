@@ -6,8 +6,12 @@
 */
 
 #include <gen/defs.h>
+#include <gen/parse.h>
 #include <utils/string.h>
 #include <utils/io.h>
+
+#ifndef _GEN_TEMPLATES_
+#define _GEN_TEMPLATES_
 
 template <class F, class M>
 code_t k_fmap(F f, M m) {
@@ -15,20 +19,36 @@ code_t k_fmap(F f, M m) {
 	code_t body = "";
 	code_t file = code_t(__FILE__);
 	remove_prefix (file, code_t("/Users/kmrocki/git/l2p2/"));
-	body += comment(code_t(__FUNCTION__) + " in " + file + ": " + std::to_string(__LINE__)) + "\n";
+	body += "{ " + comment(code_t(__FUNCTION__) + " in " + file + ": " + std::to_string(__LINE__));
 
 	std::string T = "../include/gen/templates/fmap.tt";
-	body += comment(T);
-	body += read_file(T);
-	body += comment(T);
 
-	body = subst(body, sanitize("@function(@out, @in)"), f("@out", "@in"));
-	body = subst(body, sanitize("@out"), m("@out"));
-	body = subst(body, sanitize("@in"), m("@in"));
+	code_t inner_body = "";
+	inner_body += "{ " + comment(T);
+	inner_body += indent(read_file(T));
+	inner_body += "} " + comment(T);
 
-	return indent(body);
+	// inner_body = subst(inner_body, sanitize("@function(@out, @in)"), f("@out", "@in"));
+	// inner_body = subst(inner_body, sanitize("@out"), m("@out"));
+	// inner_body = subst(inner_body, sanitize("@in"), m("@in"));
+
+	body += indent(inner_body);
+
+	body += "} " + comment(code_t(__FUNCTION__)) + "\n";
+
+	std::vector<std::string> vars = get_vars(body, "@");
+	
+	body += "vars\n";
+
+	for (auto& v : vars) {
+
+		body += v + "\n";
+	}
+
+	return body;
 
 }
+
 code_t fmads(var_t out, var_t in) {
 
 	code_t body = "";
@@ -62,7 +82,6 @@ code_t k_fold(F f) {
 code_t mov(var_t out, var_t in) {
 	return code_t(out + " = " + in + ";");
 }
-
 //c = c + a * b
 code_t fmad(var_t a, var_t b, var_t c) {
 	return code_t("mad(" + a + ", " + b + ", " + c + ")");
@@ -90,7 +109,7 @@ code_t f_max_flops(var_t out, var_t in) {
 
 	var_t r0 = "x";
 	var_t r1 = "y";
-	inner_body += "$dtype " + r0 + ", " + r1 + ";\n";
+	inner_body += "@var_t " + r0 + ", " + r1 + ";\n";
 
 	inner_body += mov(r0, in) + ";\n";
 
@@ -106,7 +125,7 @@ code_t f_max_flops(var_t out, var_t in) {
 		inner_body += fmad(r0, r1, r0) + "; " + fmad(r1, r0, r1) + ";\n";
 	}
 
-	inner_body += mov(out, r1) + ";\n";
+	inner_body += mov(out, r1) + "\n";
 
 	body += indent(inner_body);
 
@@ -128,3 +147,5 @@ code_t f_dummy(var_t out, var_t in) {
 	return body;
 
 }
+
+#endif

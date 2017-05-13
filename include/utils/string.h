@@ -9,6 +9,9 @@
 #include <string>
 #include <vector>
 
+#ifndef _STRING_OPS_H_
+#define _STRING_OPS_H_
+
 std::string prefix_line (std::string in, std::string prefix = "") {
 
 	std::string result = "";
@@ -86,15 +89,6 @@ std::string find_regex(std::string& in, std::string regex_str) {
 	return sm.str();
 }
 
-std::string get_quoted_content(std::string& in, std::string in_symbol = "\\[\\[", std::string out_symbol = "\\]\\]", int in_trim = 2, int out_trim = 2) {
-
-	std::string regexp = in_symbol + "(.*?)" + out_symbol;
-	std::cout << in << std::endl;
-	std::string content = find_regex(in, regexp);
-	if (content != "")
-		return content.substr(in_trim, content.size() - out_trim - in_trim);
-	else return "";
-}
 /*
 #include <regex>
 #include <string>
@@ -214,3 +208,5 @@ std::pair<std::string, std::string> split(const std::string s, std::string delim
 	return std::make_pair(fst, snd); // whitespace
 
 }
+
+#endif

@@ -1,5 +1,4 @@
-{
-	@loop(@iters) {
+@loop(@iters) {
 
 		@var_t r0, r1;
 		r0 = @in;
@@ -8,5 +7,4 @@
 
 		$flops = $flops + 4;
 		
-	}
 }

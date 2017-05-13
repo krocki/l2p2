@@ -46,11 +46,12 @@ code_t _internal_make_kernel(std::string kname_raw, K k_template) {
 	body += "__kernel void\n" + code_t(kname) + " (" + args + ") " + "{\n";
 
 	//consts
-	code_t consts = "\n // consts \n";
+	code_t consts = "\n// consts \n";
 	consts += "const int " + var_gid + " = get_group_id(0);\n";
 
 	body += indent(consts);
 
+	body += "\n";
 	body += indent(k_template);
 
 	body += code_t("} // " + kname + "\n");
@@ -64,6 +65,8 @@ code_t _internal_make_kernel(std::string kname_raw, K k_template) {
 	body = subst(body, sanitize("@in"), var_in);
 	body = subst(body, sanitize("@gid"), var_gid);
 
+	get_vars(body);
+	
 	return body;
 
 }

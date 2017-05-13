@@ -1,28 +1,5 @@
 /*
 * @Author: Kamil Rocki
-* @Date:   2017-05-12 19:34:15
-* @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-12 19:36:48
-*/
-
-std::vector<std::string> tokens = words(body); // whitespace
-std::vector < std::pair<code_t, code_t>> Ts;
-
-body = "";
-
-for (auto& tok : tokens) {
-	//find inner templates
-	if (tok.compare(0, 1, "@") == 0) {
-		std::pair<code_t, code_t> symbol = std::make_pair("#var" + std::to_string(Ts.size()), tok);
-		body += symbol.first + " ";
-		Ts.push_back(symbol);
-	} else {
-		body += tok + " ";
-	}
-}
-
-/*
-* @Author: Kamil Rocki
 * @Date:   2017-05-11 11:49:22
 * @Last Modified by:   Kamil Rocki
 * @Last Modified time: 2017-05-12 14:47:35
@@ -30,46 +7,44 @@ for (auto& tok : tokens) {
 
 #include <utils/string.h>
 
-std::vector<std::pair<code_t, code_t>> parse_args(code_t input) {
+#ifndef _PARSE_OPS_H_
+#define _PARSE_OPS_H_
 
-	std::vector<std::pair<code_t, code_t>> out;
+std::string get_args(std::string in, std::string in_symbol = "\\(", std::string out_symbol = "\\)", int in_trim = 1, int out_trim = 1) {
 
-	std::pair<code_t, code_t> s_args = split(input, "!");
+	std::string regexp = in_symbol + "(.*?)" + out_symbol;
+	std::cout << in << std::endl;
+	std::string content = find_regex(in, regexp);
+	if (content != "")
+		return content.substr(in_trim, content.size() - out_trim - in_trim);
+	else return "";
+}
 
-	std::vector<code_t> tokens = words(s_args.first, ",");
+std::vector<code_t> get_vars(code_t input, std::string symbol = "$", std::string delim = "\\s+") {
+
+	std::vector<code_t> tokens = words(input, delim);
+	std::vector<code_t> vars;
 
 	for (auto& tok : tokens) {
 
-		std::vector<code_t> args = words(tok, "=");
+		auto it = tok.find(symbol);
+		if (it != std::string::npos) {
+			vars.push_back(tok);
+		}
 
-		args[1] += s_args.second != "" ? ("!" + s_args.second) : "";
-
-		out.push_back(std::make_pair(args[0], args[1]));
 	}
 
-	return out;
+	return vars;
 
 }
 
 std::vector<std::string> process_tokens(std::string input) {
 
-	std::vector<std::string> tokens = words(body); // whitespace
-	std::vector < std::pair<code_t, code_t>> Ts;
-
-	body = "";
-
-	for (auto& tok : tokens) {
-		//find inner templates
-		if (tok.compare(0, 1, "@") == 0) {
-			std::pair<code_t, code_t> symbol = std::make_pair("#var" + std::to_string(Ts.size()), tok);
-			body += symbol.first + " ";
-			Ts.push_back(symbol);
-		} else {
-			body += tok + " ";
-		}
-	}
-
+	std::vector<std::string> tokens = words(input); // whitespace
+	return tokens;
 }
+
+#endif
 
 /*code_t generate_t (code_t T, std::vector<std::pair<code_t, code_t>> args = {}, std::string prefix = "../include/gen/templates/", std::string suffix = ".t") {
 
