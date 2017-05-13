@@ -4,11 +4,6 @@
 * @Last Modified by:   Kamil Rocki
 * @Last Modified time: 2017-05-11 12:24:33
 */
-
-//out = f(in)
-<var out, var in, function f>
-fmap {
-
-	@f ($out, $in)
-
-}
+[[{
+	function
+}]]

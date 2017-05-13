@@ -2,29 +2,45 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-11 12:21:24
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-11 20:09:22
+* @Last Modified time: 2017-05-12 16:44:45
 */
 
 #include <gen/defs.h>
+#include <utils/string.h>
+#include <utils/io.h>
 
-template <class F>
-code_t k_fmap(F f) {
+template <class F, class M>
+code_t k_fmap(F f, M m) {
 
 	code_t body = "";
 	code_t file = code_t(__FILE__);
 	remove_prefix (file, code_t("/Users/kmrocki/git/l2p2/"));
 	body += comment(code_t(__FUNCTION__) + " in " + file + ": " + std::to_string(__LINE__)) + "\n";
-	body +=
-	    R"(// k_map_$function
-{
-	@function(@out, @in)
+
+	std::string T = "../include/gen/templates/fmap.tt";
+	body += comment(T);
+	body += read_file(T);
+	body += comment(T);
+
+	body = subst(body, sanitize("@function(@out, @in)"), f("@out", "@in"));
+	body = subst(body, sanitize("@out"), m("@out"));
+	body = subst(body, sanitize("@in"), m("@in"));
+
+	return indent(body);
+
 }
-)";
+code_t fmads(var_t out, var_t in) {
 
-	body = subst(body, "\\@function($out, $in)", f("$out", "$in"));
+	code_t body = "";
+	code_t file = code_t(__FILE__);
+	remove_prefix (file, code_t("/Users/kmrocki/git/l2p2/"));
+	body += comment(code_t(__FUNCTION__) + " in " + file + ": " + std::to_string(__LINE__)) + "\n";
+	std::string T = "../include/gen/templates/fmads.tt";
+	body += comment(T);
+	body += read_file(T);
+	body += comment(T);
 
-	return body;
-
+	return indent(code_t(body));
 }
 
 template <class F>
@@ -32,7 +48,7 @@ code_t k_fold(F f) {
 
 	code_t body = "";
 
-	var_t in_mem = "in[id]";
+	var_t in_mem = "in[@gid]";
 	var_t out_mem = "out[0]";
 
 	code_t func_body = f(out_mem, in_mem);
@@ -44,7 +60,7 @@ code_t k_fold(F f) {
 }
 
 code_t mov(var_t out, var_t in) {
-	return code_t(out + " = " + in);
+	return code_t(out + " = " + in + ";");
 }
 
 //c = c + a * b
