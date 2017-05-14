@@ -6,37 +6,23 @@
 */
 
 #include <iostream>
-#include <utils/common.h>
+#include <utils/io.h>
+#include <vector>
 #include <gen/generate_tt.h>
 
 int main() {
 
-	// 2 kernels used to estimate peak performance
-	code_t k_cl_copy_gmem = make_tt ("cl_copy_gmem");
-	code_t k_cl_copy_gmem_v2 = make_tt ("cl_copy_gmem_v2");
-	write_to_file ("./debug/cl_copy_gmem.cl", k_cl_copy_gmem);
-	write_to_file ("./debug/cl_copy_gmem_v2.cl", k_cl_copy_gmem_v2);
+	std::vector<std::string> gen_list = {"cl_copy_gmem", "cl_copy_gmem_v2"};
+	std::string outpath = "./debug/";
 
-	// write_to_file ("./debug/bandwidth.cl", k_bandwidth);
+	for (auto& i: gen_list) {
 
-	// code_t k_flops = generate_t ("compute");
-	// write_to_file ("./debug/compute.cl", k_flops);
+		code_t k_code = make_tt (i);
+		std::string fname = outpath + i + ".cl";
+		write_to_file (fname, k_code);
+		std::cout << "generated \"" + i + "\" :\n>>>>>>>>>>>>>>>\n" + k_code + "\n<<<<<<<<<<<<<<<\nwritten to: " + fname + "\n";
 
-	// code_t k_copy = make_kernel(k_fmap(mov, direct));
-	// code_t k_flops = make_kernel(k_fmap(f_max_flops, direct));
-	// code_t k_flops2 = make_kernel(k_fmap(fmads, direct));
-
-	// // parallel reduce
-	// code_t k_sum = make_kernel(k_fold(add));
-	// code_t k_max = make_kernel(k_fold(max));
-
-
-	// write_to_file ("./debug/compute.cl", k_flops);
-	// write_to_file ("./debug/compute2.cl", k_flops2);
-	// write_to_file ("./debug/flops.cl", k_flops);
-	// write_to_file ("./debug/sum.cl", k_sum);
-	// write_to_file ("./debug/maxcoeff.cl", k_max);
+	}
 
 	return 1;
-
 }

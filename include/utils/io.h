@@ -7,6 +7,9 @@
 
 #include <fstream>
 
+#ifndef _UTILS_IO_
+#define _UTILS_IO_
+
 // c++ write
 int write_to_file (const char* filename, std::string & content) {
 
@@ -29,8 +32,11 @@ std::string read_file(const char* filename) {
 	} else return (std::string("# could not read : ") + std::string(filename));
 }
 
-std::string read_file(std::string filename) {
+int write_to_file(std::string filename, std::string & content) {
+	return write_to_file(filename.c_str(), content);
+}
 
+std::string read_file(std::string filename) {
 	return read_file(filename.c_str());
 }
 
@@ -70,3 +76,5 @@ char* readFile (const char* filename, size_t* length) {
 	buffer[len] = '\0';
 	return buffer;
 }
+
+#endif

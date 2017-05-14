@@ -1,4 +1,4 @@
-__kernel void cl_copy_gmem (
+__kernel void cl_copy_gmem_v2 (
     __global float * restrict out,
     __global const float * restrict in,
     const int iters) {

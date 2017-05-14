@@ -15,6 +15,8 @@
 
 #include <vector>
 #include <utils/common.h>
+#include <utils/string.h>
+#include <utils/io.h>
 
 #ifndef _CL_UTILS_
 #define _CL_UTILS_
