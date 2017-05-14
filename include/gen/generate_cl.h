@@ -1,8 +1,8 @@
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-05-11 11:49:22
-* @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-12 16:37:53
+* @Last Modified by:   krocki
+* @Last Modified time: 2017-05-13 18:34:36
 */
 
 #include <iostream>
@@ -12,7 +12,7 @@
 #include <gen/defs.h>
 
 #define make_kernel(expr) _internal_make_kernel(#expr, expr);
-
+s
 code_t local(var_t addr) {
 	return code_t(addr + "[@gid]");
 }
@@ -66,7 +66,7 @@ code_t _internal_make_kernel(std::string kname_raw, K k_template) {
 	body = subst(body, sanitize("@gid"), var_gid);
 
 	get_vars(body);
-	
+
 	return body;
 
 }

@@ -1,0 +1,14 @@
+__kernel void cl_copy_gmem (
+    __global float * restrict out,
+    __global const float * restrict in,
+    const int iters) {
+
+	const int _STRIDE_ = get_global_size(0);
+	const int _GID_ = get_global_id (0);
+	const int _ITERS_ = iters;
+
+	for (int i = 0; i < _ITERS_; i++) {
+		out[_GID_] = in[_GID_];
+		_GID_ += _STRIDE_;
+	}
+}
