@@ -6,6 +6,7 @@
 */
 
 #include <iostream>
+#include <utils/ansi_colors.h>
 
 #include <array/eigen.h>
 #include <cl/cl_ctx.h>
@@ -25,8 +26,9 @@ int init_cl(int dev) {
 		return -1;
 	}
 
-	ocl.add_program("reduce", "../include/cl/kernels/reduce.cl");
-	ocl.add_kernel ("max_coeff", "reduce");
+	ocl.add_program("copy", "../include/cl/kernels/copy.cl");
+	ocl.add_kernel ("cl_copy_gmem", "copy");
+	ocl.add_kernel ("cl_copy_gmem_v2", "copy");
 
 	ocl.list_loaded_kernels();
 
@@ -37,38 +39,37 @@ int init_cl(int dev) {
 template<class T>
 int run_example() {
 
-	array_t<T> ref(25, 5);
+	array_t<T> ref(8, 8);
 	ref.setRandom();
 
 	std::cout << "ref:" << std::endl;
 	std::cout << ref << std::endl;
 
-	T e_min = ref.minCoeff();
-	T e_max = ref.maxCoeff();
-	T e_sum = ref.sum();
-	T e_mean = ref.mean();
-
-	std::cout 	<< std::endl
-	            << "min: " << e_min
-	            << ", max: " << e_max
-	            << ", sum: " << e_sum
-	            << ", avg: " << e_mean
-	            << std::endl;
-
 	// make an opencl copy of the eigen array
 	cl_array<T> x = cl_array<T> (&ocl, ref);
-	cl_array<T> y = cl_array<T> (&ocl, 1, 1);
+	cl_array<T> y = cl_array<T> (&ocl, ref.rows(), ref.cols());
 
 	// copy host_data to device
 	x.sync_device();
 
+	std::string op = "cl_copy_gmem";
+
 	// find max in x and store in y
-	cl_reduce (y, x, "max_coeff");
+	std::string cl_config_string = exec_cl (y, x, op);
 
 	// copy device data to host
 	y.sync_host();
 
-	std::cout << "cl max_coeff = " << y.ref_host_data << std::endl;
+	std::cout << op + " = \n" << y.ref_host_data << std::endl;
+
+	T err = (y.ref_host_data - ref).cwiseAbs().maxCoeff();
+
+	const std::string color = (err > 1e-3f) ? ANSI_COLOR_RED : err > 1e-7f ? ANSI_COLOR_YELLOW : "";
+	const std::string keep = "\n"; //(err > 1e-7f) ? "\n" : "\r";
+
+	const std::string message = color + "[ reduce test: op = '" + op + "', size = " + std::to_string(x.rows()) + " x " + std::to_string(x.cols()) + " ( " + std::to_string (x.rows() * x.cols()) + " ) " + " ] --->  ERR: " + std::to_string(err) + ANSI_COLOR_RESET + "; " + cl_config_string + keep;
+
+	std::cout << message;
 
 	return 0;
 
@@ -83,7 +84,7 @@ int main (int argc, char** argv) {
 		init_cl(requested_device);
 
 		run_example<float>();
-
+		
 	} catch (const std::runtime_error &e ) {
 
 		std::string error_msg = std::string ( "main() - std::runtime_error: " ) + std::string ( e.what() );

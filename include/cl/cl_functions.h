@@ -15,7 +15,7 @@
 
 #define SMALLEST -1.0e37f
 
-std::string cl_reduce (cl_array<float>& y, cl_array<float>& x, std::string reduce_op, size_t lsize = 0, size_t ngroups = 0, bool profiling_enabled = false) {
+std::string exec_cl (cl_array<float>& y, cl_array<float>& x, std::string kernel_op, size_t lsize = 0, size_t ngroups = 0, bool profiling_enabled = false) {
 
 	unsigned int n = x.length();
 
@@ -28,56 +28,57 @@ std::string cl_reduce (cl_array<float>& y, cl_array<float>& x, std::string reduc
 		std::cout << "cl_ctx* is null: " << __FILE__ << ", line: " << __LINE__ << std::endl;
 
 	float acc_val = 0.0f;
-	if (reduce_op == "max_coeff") acc_val = SMALLEST;
-
-	//reset the accumulator
-	y.set(acc_val);
+	if (kernel_op == "max_coeff") {
+		acc_val = SMALLEST;
+		//reset the accumulator
+		y.set(acc_val);
+	}
 
 	size_t local_work_size = lsize > 0 ? lsize : __ctx->local_work_size;
 	size_t num_workgroups = ngroups > 0 ? ngroups : __ctx->num_workgroups;
 	size_t global_work_size = local_work_size * num_workgroups;
-	size_t internal_iterations = n / global_work_size + (((n % global_work_size) > 0) ? 1 : 0);
+	int internal_iterations = ((n-1) / global_work_size) + 1;
 
-	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[reduce_op], 0, sizeof (cl_mem), (void*) &y.ref_device_data) );
-	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[reduce_op], 1, sizeof (cl_mem), (void*) &x.ref_device_data) );
-	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[reduce_op], 2, sizeof (unsigned int), (void*) &n) );
-	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[reduce_op], 3, local_work_size * sizeof(cl_float), NULL) );
+	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[kernel_op], 0, sizeof (cl_mem), (void*) &y.ref_device_data) );
+	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[kernel_op], 1, sizeof (cl_mem), (void*) &x.ref_device_data) );
+	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[kernel_op], 2, sizeof (int), (void*) &internal_iterations) );
 
 	cl_config_string += " n=" + std::to_string(n) + " w=" + std::to_string(num_workgroups) + " g=" + std::to_string(global_work_size) + " l=" + std::to_string(local_work_size) + " i=" + std::to_string(internal_iterations);
 
-	std::string func_string = "cl_reduce_" + reduce_op + "_" + std::to_string(n) + "_" + std::to_string(x.rows()) + "x" + std::to_string(x.cols());
+	std::string func_string = "cl_kernel_" + kernel_op + "_" + std::to_string(n) + "_" + std::to_string(x.rows()) + "x" + std::to_string(x.cols());
 
-	if (profiling_enabled) {
-		clWaitForEvents (1, &__ctx->cl_events[func_string]);
-	}
+	// if (profiling_enabled) {
+	// 	clWaitForEvents (1, &__ctx->cl_events[func_string]);
+	// }
 
-	/* Execute the kernel */
-	CL_SAFE_CALL (clEnqueueNDRangeKernel (__ctx->queue(), __ctx->cl_kernels[reduce_op], 1, NULL, &global_work_size, &local_work_size, 0, NULL, &__ctx->cl_events[func_string]) );
+	// /* Execute the kernel */
+	CL_SAFE_CALL (clEnqueueNDRangeKernel (__ctx->queue(), __ctx->cl_kernels[kernel_op], 1, NULL, &global_work_size, &local_work_size, 0, NULL, &__ctx->cl_events[func_string]) );
 
-	if (profiling_enabled) {
+	// if (profiling_enabled) {
 
-		clWaitForEvents (1, &__ctx->cl_events[func_string]);
+	// 	clWaitForEvents (1, &__ctx->cl_events[func_string]);
 
-		cl_ulong time_start, time_end;
-		double total_time;
+	// 	cl_ulong time_start, time_end;
+	// 	double total_time;
 
-		//- CL_PROFILING_COMMAND_QUEUED
-		//- CL_PROFILING_COMMAND_SUBMIT
-		//- CL_PROFILING_COMMAND_START
-		//- CL_PROFILING_COMMAND_END
+	// 	//- CL_PROFILING_COMMAND_QUEUED
+	// 	//- CL_PROFILING_COMMAND_SUBMIT
+	// 	//- CL_PROFILING_COMMAND_START
+	// 	//- CL_PROFILING_COMMAND_END
 
-		clGetEventProfilingInfo (__ctx->cl_events[func_string], CL_PROFILING_COMMAND_START, sizeof (time_start), &time_start, NULL);
-		clGetEventProfilingInfo (__ctx->cl_events[func_string], CL_PROFILING_COMMAND_END, sizeof (time_end), &time_end, NULL);
-		total_time = time_end - time_start;
+	// 	clGetEventProfilingInfo (__ctx->cl_events[func_string], CL_PROFILING_COMMAND_START, sizeof (time_start), &time_start, NULL);
+	// 	clGetEventProfilingInfo (__ctx->cl_events[func_string], CL_PROFILING_COMMAND_END, sizeof (time_end), &time_end, NULL);
+	// 	total_time = time_end - time_start;
 
 
-		pdata[reduce_op].key = reduce_op;
-		pdata[reduce_op].time += total_time;
-		pdata[reduce_op].calls += 1;
-		pdata[reduce_op].flops += n;
-		pdata[reduce_op].bytes_in += x.length() * sizeof(float);
-		pdata[reduce_op].bytes_out += y.length() * sizeof(float);
-	}
+	// 	pdata[kernel_op].key = kernel_op;
+	// 	pdata[kernel_op].time += total_time;
+	// 	pdata[kernel_op].calls += 1;
+	// 	pdata[kernel_op].flops += n;
+	// 	pdata[kernel_op].bytes_in += x.length() * sizeof(float);
+	// 	pdata[kernel_op].bytes_out += y.length() * sizeof(float);
+	// }
+	
 	return cl_config_string;
 }
 
