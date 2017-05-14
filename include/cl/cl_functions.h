@@ -11,8 +11,6 @@
 #include <cl/cl_array.h>
 #include <utils/perf.h>
 
-/*__kernel void max_coeff (__global float * restrict y, __global float * restrict xgm, const unsigned int n, __global float * restrict scratchbuf) */
-
 #define SMALLEST -1.0e37f
 
 std::string exec_cl (cl_array<float>& y, cl_array<float>& x, std::string kernel_op, size_t lsize = 0, size_t ngroups = 0, bool profiling_enabled = false) {
