@@ -12,4 +12,7 @@ __kernel void cl_copy_gmem (
 	}
 }
 
-// ``flops_per_thread = 0``
+``
+flops_per_thread = 0;
+kname = "cl_copy_gmem";
+``
