@@ -1,8 +1,8 @@
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-05-11 11:45:10
-* @Last Modified by:   krocki
-* @Last Modified time: 2017-05-13 18:34:48
+* @Last Modified by:   Kamil Rocki
+* @Last Modified time: 2017-05-15 12:10:12
 */
 
 #include <iostream>
@@ -11,11 +11,11 @@
 #include <gen/generate_tt.h>
 
 int main() {
-
-	std::vector<std::string> gen_list = {"cl_copy_gmem", "cl_copy_gmem_v2"};
+	// std::vector<std::string> gen_list = {"cl_copy_gmem", "cl_copy_gmem_v2", "fmads"};
+	std::vector<std::string> gen_list = {"cl_copy_gmem"};
 	std::string outpath = "./debug/";
 
-	for (auto& i: gen_list) {
+	for (auto& i : gen_list) {
 
 		code_t k_code = make_tt (i);
 		std::string fname = outpath + i + ".cl";

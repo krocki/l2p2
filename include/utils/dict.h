@@ -71,6 +71,10 @@ class Dict {
 		return (*this) [std::string (1, key)];
 	}
 
+	bool contains(std::string key) {
+		return !(namemap.find (key) == namemap.end());
+	}
+
 	T& operator[] (std::string key) {
 		if (namemap.find (key) == namemap.end() ) {
 			namemap[key] = entries.size();

@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-03 20:44:37
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-05-04 14:16:18
+* @Last Modified by:   Kamil Rocki
+* @Last Modified time: 2017-05-14 20:55:34
 */
 
 #include <iostream>
@@ -84,7 +84,7 @@ int main (int argc, char** argv) {
 		init_cl(requested_device);
 
 		run_example<float>();
-		
+
 	} catch (const std::runtime_error &e ) {
 
 		std::string error_msg = std::string ( "main() - std::runtime_error: " ) + std::string ( e.what() );

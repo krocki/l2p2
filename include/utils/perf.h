@@ -196,7 +196,7 @@ void show_profiling_data (Dict<performance_counter>& pdata, sort_method_type sor
 	if (ptype != OFF) {
 		std::cout << std::endl;
 		std::cout << "Total profiled time: " << 1e-9 * total_cl_time << " s " << "( " << to_string_with_precision ( (100.0 * (long double) (1e-9 * total_cl_time) / (long double) difference), 7, 3) << "% ) " << std::endl;
-		std::cout << "Total compute: " << 1e-9 * ( (long double) total_cl_flops_performed / (long double) difference) << " GF/s" << std::endl;
+		std::cout << "Total compute: " << 1e-9 * ( (long double) total_cl_flops_performed / (long double) difference) << " GF" << std::endl;
 		std::cout << "Total in: " << 1e-9 * ( (long double) total_bytes_in) << " GB" << std::endl;
 		std::cout << "Total out: " << 1e-9 * ( (long double) total_bytes_out) << " GB" << std::endl;
 		std::cout << "Total kernel calls: " << total_calls << std::endl;

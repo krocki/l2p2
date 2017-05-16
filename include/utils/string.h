@@ -2,12 +2,14 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-12 08:18:54
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-12 14:57:27
+* @Last Modified time: 2017-05-15 15:27:24
 */
 
 #include <regex>
 #include <string>
 #include <vector>
+#include <sstream>
+#include <iomanip> // set_w
 
 #ifndef _STRING_OPS_H_
 #define _STRING_OPS_H_
@@ -86,7 +88,7 @@ std::string find_regex(std::string& in, std::string regex_str) {
 	std::cout << "Match found at pos. " << sm.position() << std::endl;
 	std::cout << "Pattern found was: " << sm.str() << std::endl;
 
-	return sm.str();
+	return b ? sm.str() : "not found!";
 }
 
 /*

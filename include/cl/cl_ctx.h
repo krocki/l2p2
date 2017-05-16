@@ -7,6 +7,7 @@
 
 
 #include <cl/cl_utils.h>
+#include <cl/cl_c_kernel.h>
 #include <utils/dict.h>
 
 #ifndef __CL_CTX_H__
@@ -31,6 +32,7 @@ class cl_ctx {
 
 	Dict<cl_event> cl_events;
 	Dict<cl_kernel> cl_kernels;
+	Dict<compute_kernel> kernels;
 
 	std::vector <compute_device_info> available_devices;
 
