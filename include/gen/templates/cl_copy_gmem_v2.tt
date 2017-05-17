@@ -1,13 +1,11 @@
-__kernel void cl_copy_gmem_v2 (
-    __global float * restrict out,
-    __global const float * restrict in,
-    const int iters) {
+__kernel void k_gen_$N$_$L$_$W$_$I$_$T$$V$_cl_copy_gmem (
+    __global $T$$V$ * restrict out,
+    __global const $T$$V$ * restrict in) {
 
-	const int _STRIDE_ = get_global_size(0);
-	const int _GID_ = get_global_id (0);
-	const int _ITERS_ = iters;
+	const int gid = get_global_id (0);
 
-	for (int i = 0; i < _ITERS_; i++) {
-		out[i * _STRIDE_ + _GID_] = in[i * _STRIDE_ + _GID_];
+#pragma unroll `$I$ / $V$`
+	for (int i = 0; i < `$I$ / $V$`; i++) {
+		out[gid + i*$G$] = in[gid + i*$G$];
 	}
 }

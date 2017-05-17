@@ -68,4 +68,71 @@ std::string return_current_time_and_date (const char* format = "%x %X") {
 	return ss.str();
 }
 
+//for printing tuple contents
+namespace aux {
+template<std::size_t...> struct seq {};
+
+template<std::size_t N, std::size_t... Is>
+struct gen_seq : gen_seq < N - 1, N - 1, Is... > {};
+
+template<std::size_t... Is>
+struct gen_seq<0, Is...> : seq<Is...> {};
+
+template<class Ch, class Tr, class Tuple, std::size_t... Is>
+void print_tuple(std::basic_ostream<Ch, Tr>& os, Tuple const& t, seq<Is...>) {
+	using swallow = int[];
+	(void)swallow{0, (void(os << (Is == 0 ? "" : ", ") << std::get<Is>(t)), 0)...};
+}
+} // aux::
+
+template<class Ch, class Tr, class... Args>
+auto operator<<(std::basic_ostream<Ch, Tr>& os, std::tuple<Args...> const& t)
+-> std::basic_ostream<Ch, Tr>& {
+	os << "{";
+	aux::print_tuple(os, t, aux::gen_seq<sizeof...(Args)>());
+	return os << "}";
+}
+
+template<typename... Ts, size_t I = 1>
+std::string pretty_print(std::vector<std::tuple<Ts...>> const& res) {
+
+	int count = 0;
+	std::string out = "";
+
+	for (auto& a : res) {
+		//TODO:
+		std::ostringstream stream;
+		stream << a;
+
+		out += std::to_string((++count)) + std::string(":\t") + stream.str() + std::string("\n");
+	}
+
+	return out;
+}
+
+//cartesian product of n vectors
+//http://stackoverflow.com/questions/13813007/tmp-how-to-generalize-a-cartesian-product-of-vectors
+// cross_imp(f, v...) means "do `f` for each element of cartesian product of v..."
+template<typename F>
+inline void cross_imp(F f) {
+	f();
+}
+template<typename F, typename H, typename... Ts>
+inline void cross_imp(F f, std::vector<H> const& h,
+                      std::vector<Ts> const&... t) {
+	for (H const& he : h)
+		cross_imp([&](Ts const & ... ts) {
+		f(he, ts...);
+	}, t...);
+}
+
+template<typename... Ts>
+std::vector<std::tuple<Ts...>> cross(std::vector<Ts> const&... in) {
+	std::vector<std::tuple<Ts...>> res;
+	cross_imp([&](Ts const & ... ts) {
+		res.emplace_back(ts...);
+	}, in...);
+	return res;
+}
+
 #endif

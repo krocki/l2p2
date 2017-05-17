@@ -10,3 +10,6 @@
 [submodule "ext/clProbDist"]
 	path = ext/clProbDist
 	url = git@github.com:krocki/clProbDist.git
+[submodule "ext/tinyexpr"]
+	path = ext/tinyexpr
+	url = git@github.com:codeplea/tinyexpr.git

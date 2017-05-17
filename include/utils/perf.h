@@ -50,13 +50,13 @@ typedef enum profiling_type {OFF = 0, CPU_ONLY = 1, GPU_ONLY = 2, CPU_GPU = 3} p
 			std::string key = std::string(__VA_ARGS__); \
 			std::string desc = std::string(#func); desc = "";\
 			if (key.empty()) { key = std::string(#func); desc = std::string(__VA_ARGS__); } \
-			pdata[key].time += func_time; \
-			pdata[key].calls += 1; \
-			pdata[key].description = desc; \
+			pdata[desc].time += func_time; \
+			pdata[desc].calls += 1; \
+			pdata[desc].description = desc; \
 		} \
 	} while (0)
 
-typedef enum sort_method_type { NO_SORTING = 0, SORT_BY_TIME_DESC = 1, SORT_BY_FLOPS_DESC = 2, SORT_BY_NAME = 3, SORT_BY_NAME_DESC = 4, SORT_BY_CALLS_DESC = 5} sort_method_type;
+typedef enum sort_method_type { NO_SORTING = 0, SORT_BY_TIME_DESC = 1, SORT_BY_FLOPS_DESC = 2, SORT_BY_NAME = 3, SORT_BY_NAME_DESC = 4, SORT_BY_CALLS_DESC = 5, SORT_BY_BANDW_DESC = 6} sort_method_type;
 std::chrono::time_point<std::chrono::system_clock> start, end;
 
 class performance_counter {
@@ -71,6 +71,7 @@ class performance_counter {
 	long double bytes_in = 0.0;
 	long double bytes_out = 0.0;
 	unsigned long long calls = 0L;
+	unsigned long long errors = 0L;
 
 	performance_counter (std::string _description = "") : description (_description) {
 		reset();
@@ -83,9 +84,10 @@ class performance_counter {
 		bytes_in = 0.0;
 		bytes_out = 0.0;
 		calls = 0L;
+		errors = 0L;
 	}
 
-	void show (const double global_time = 0.0, double total_cl_time = 0.0, unsigned long total_cl_flops_performed = 0L, unsigned long total_bytes_in = 0L,  unsigned long total_bytes_out = 0L, const int m = 7, const int n = 3) {
+	std::string show (const double global_time = 0.0, double total_cl_time = 0.0, unsigned long total_cl_flops_performed = 0L, unsigned long total_bytes_in = 0L,  unsigned long total_bytes_out = 0L, const int m = 7, const int n = 3) {
 
 		double cl_time_perc = 0;
 		double total_time_perc = 0;
@@ -93,44 +95,43 @@ class performance_counter {
 		double total_bytes_in_perc = 0;
 		double total_bytes_out_perc = 0;
 
-		if (!description.empty() ) std::cout << ", descr: " << description;
+		std::string results = "";
+
+		if (!description.empty() ) results += description;
 		if (total_cl_time > 0.0) cl_time_perc = (100.0 * time) / total_cl_time;
 		if (global_time > 0.0) total_time_perc = (1e-7 * time) / global_time;
 		if (total_cl_flops_performed > 0) total_flops_perc = ( (100.0 * (long double) flops) / (long double) total_cl_flops_performed);
 		if (total_bytes_in > 0) total_bytes_in_perc = ( (100.0 * (long double) bytes_in) / (long double) total_bytes_in);
 		if (total_bytes_out > 0) total_bytes_out_perc = ( (100.0 * (long double) bytes_out) / (long double) total_bytes_out);
 
-		std::cout << " #";
-		std::cout << to_string_with_precision ((double)calls * 1e-3, 5, 3) << "k";
-		std::cout << ", time: " << to_string_with_precision (time * 1e-9, m, n) << " s ";
-		std::cout << ", avg: " << to_string_with_precision ((1e-6 * time) / ((double)calls), m, n) << " ms ";
-		// std::cout << " / ( " << to_string_with_precision (cl_time_perc, 6, 2) << "% / ";
-		// std::cout << to_string_with_precision (total_time_perc, 6, 2) << "% )";
-		// std::cout << ", GFlOPs " << to_string_with_precision (flops * 1e-9, m, n) << ", ";
-		// std::cout << " ( " << to_string_with_precision (total_flops_perc, 6, 2) << "% )";
-		std::cout << ", GF/s: " << to_string_with_precision (flops / time, m, n) << "/s ";
-		// std::cout << ", GB in " << to_string_with_precision (bytes_in * 1e-9, m, n) << ", ";
-		// std::cout << "( " << to_string_with_precision (total_bytes_in_perc, 6, 2) << "% )";
-		// std::cout << ", GB/s: " << to_string_with_precision (bytes_in / time, m, n) << " ";
-		// std::cout << ", GB out " << to_string_with_precision (bytes_out * 1e-9, m, n) << ", ";
-		// std::cout << " ( " << to_string_with_precision (total_bytes_out_perc, 6, 2) << "% )";
-		// std::cout << ", GB/s: " << to_string_with_precision (bytes_out / time, m, n) << " ";
-		std::cout << ", GB/s: " << to_string_with_precision ((bytes_in + bytes_out) / time, m, n) << " ";
-		std::cout << std::endl;
+		results += string_format (", err/total %06d/%06d", errors, calls);
+		results += string_format (", T %3.3f s", time * 1e-9);
+		results += string_format (", t/call %3.3f ms", (1e-6 * time) / ((double)calls));
+
+		results += string_format (", GF/s %5.2f", ((double)(flops) / (double)(time)));
+		results += string_format (", GB/s %5.2f", ((double)bytes_in + (double)bytes_out) / (double)time);
+		results += string_format (", err %3.2f", ((double)errors / (double)calls));
+
+		results += "\n";
+
+		return results;
 	}
+
 };
 
-void show_profiling_data (Dict<performance_counter>& pdata, sort_method_type sort_method = SORT_BY_TIME_DESC, profiling_type ptype = OFF, bool reset_counters = true) {
+std::string show_profiling_data (Dict<performance_counter>& pdata, sort_method_type sort_method = SORT_BY_TIME_DESC, profiling_type ptype = OFF, bool reset_counters = true) {
 
 	unsigned long total_cl_flops_performed  = 0L;
 	unsigned long total_bytes_in  = 0L;
 	unsigned long total_bytes_out  = 0L;
 	unsigned long total_calls  = 0L;
 
+	std::string out = "";
+
 	double total_cl_time = 0.0;
 	end = std::chrono::system_clock::now();
 	double difference = (double) std::chrono::duration_cast<std::chrono::microseconds> (end - start).count() / (double) 1e6;
-	std::cout << "T = " << difference << " s" << std::endl;
+	out += std::string("T = ") + std::to_string(difference) + " s\n";
 
 	//first pass
 	for (size_t i = 0; i < pdata.entries.size(); i ++) {
@@ -169,6 +170,14 @@ void show_profiling_data (Dict<performance_counter>& pdata, sort_method_type sor
 		});
 		break;
 
+	case SORT_BY_BANDW_DESC:
+		sorted_idxs = pdata.sorted_idxs ([&] (size_t i1, size_t i2) {
+			double B1 = pdata.entries[i1].bytes_in + pdata.entries[i1].bytes_out;
+			double B2 = pdata.entries[i2].bytes_in + pdata.entries[i2].bytes_out;
+			return B1 / pdata.entries[i1].time > B2 / pdata.entries[i2].time;
+		});
+		break;
+
 	case SORT_BY_NAME:
 		sorted_idxs = pdata.sorted_idxs ([&] (size_t i1, size_t i2) {
 			return pdata.entries[i1].key < pdata.entries[i2].key;
@@ -185,8 +194,8 @@ void show_profiling_data (Dict<performance_counter>& pdata, sort_method_type sor
 	//second pass
 	for (size_t i = 0; i < pdata.entries.size(); i ++) {
 		if (ptype != OFF) {
-			std::cout << std::setw (50) << pdata.reverse_namemap[ sorted_idxs[i] ];
-			pdata.entries[ sorted_idxs[i] ].show (difference, total_cl_time, total_cl_flops_performed, total_bytes_in, total_bytes_out);
+			out += pdata.reverse_namemap[ sorted_idxs[i] ];
+			out += pdata.entries[ sorted_idxs[i] ].show (difference, total_cl_time, total_cl_flops_performed, total_bytes_in, total_bytes_out);
 		}
 
 		if (reset_counters)
@@ -194,20 +203,22 @@ void show_profiling_data (Dict<performance_counter>& pdata, sort_method_type sor
 	}
 
 	if (ptype != OFF) {
-		std::cout << std::endl;
-		std::cout << "Total profiled time: " << 1e-9 * total_cl_time << " s " << "( " << to_string_with_precision ( (100.0 * (long double) (1e-9 * total_cl_time) / (long double) difference), 7, 3) << "% ) " << std::endl;
-		std::cout << "Total compute: " << 1e-9 * ( (long double) total_cl_flops_performed / (long double) difference) << " GF" << std::endl;
-		std::cout << "Total in: " << 1e-9 * ( (long double) total_bytes_in) << " GB" << std::endl;
-		std::cout << "Total out: " << 1e-9 * ( (long double) total_bytes_out) << " GB" << std::endl;
-		std::cout << "Total kernel calls: " << total_calls << std::endl;
-		std::cout << std::endl;
+		out += "\n";
+		out +=  "Total profiled time: " + std::to_string(1e-9 * total_cl_time) + " s ( " + std::to_string ( (100.0 * (long double) (1e-9 * total_cl_time) / (long double) difference)) + " )\n";
+
+		out += "Total compute: " + std::to_string(1e-9 * ( (long double) total_cl_flops_performed / (long double) difference)) + " GF\n";
+		out += "Total in: " + std::to_string(1e-9 * ( (long double) total_bytes_in)) + " GB\n";
+		out += "Total out: " + std::to_string(1e-9 * ( (long double) total_bytes_out)) + " GB\n";
+		out += "Total kernel calls: " + std::to_string(total_calls) + "\n\n";
 	}
 
 	start = std::chrono::system_clock::now();
+
+	return out;
 }
 
 
 Dict<performance_counter> pdata;
-profiling_type prof_enabled = CPU_GPU;
+profiling_type prof_enabled = GPU_ONLY;
 
 #endif /*__PERF_H__*/

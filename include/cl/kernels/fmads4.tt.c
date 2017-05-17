@@ -1,5 +1,5 @@
 // ../include/gen/templates/fmads.tt
-__kernel void cl_flops (
+__kernel void fmads (
     __global float4 * restrict out,
     __global const float4 * restrict in,
     const int iters) {

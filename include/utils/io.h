@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-12 08:20:12
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-12 08:27:40
+* @Last Modified time: 2017-05-16 06:43:24
 */
 
 #include <fstream>
@@ -11,7 +11,10 @@
 #define _UTILS_IO_
 
 // c++ write
-int write_to_file (const char* filename, std::string & content) {
+int write_to_file (const char* filename, std::string & content, bool append = false) {
+
+	auto flags = std::ios::out;
+	if (append) flags |= std::ios::app;
 
 	std::ofstream file;
 	file.open (filename);
@@ -32,8 +35,8 @@ std::string read_file(const char* filename) {
 	} else return (std::string("# could not read : ") + std::string(filename));
 }
 
-int write_to_file(std::string filename, std::string & content) {
-	return write_to_file(filename.c_str(), content);
+int write_to_file(std::string filename, std::string & content, bool append = false) {
+	return write_to_file(filename.c_str(), content, append);
 }
 
 std::string read_file(std::string filename) {

@@ -153,9 +153,9 @@ class cl_array {
 
 	void alloc_device_mem() {
 
-		std::cout << ref_host_data.rows() * ref_host_data.cols() << std::endl;
+		//std::cout << ref_host_data.rows() * ref_host_data.cols() << std::endl;
 		device_data_size = cl_alloc_from_matrix (matrix_ctx, device_data, ref_host_data, padding, matrix_ctx->device_mem_alloc_flags);
-		std::cout << device_data_size << std::endl;
+		//std::cout << device_data_size << std::endl;
 		ref_device_data = device_data;
 		if (prealloc_scratchpad) resize_scratchpad();
 

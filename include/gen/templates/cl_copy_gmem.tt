@@ -1,18 +1,23 @@
-__kernel void cl_copy_gmem (
-    __global $T$$V$ * restrict out,
-    __global const $T$$V$ * restrict in,
-    const int iters) {
+//__attribute__((vec_type_hint($TV$)))
+__kernel void k_gen_$N$_$L$_$G$_$W$_$I$_$TV$_cl_copy_gmem (
+    __global $TV$ * restrict out,
+    __global const $TV$ * restrict in) {
 
-	int gid = get_global_id (0);
-	const int it = ` $ITERS$ / $V$ `;
-
-	for (int i = 0; i < it; i++) {
+    #if $I$>0
+    int gid = get_global_id (0);
+    #endif
+    
+	#if $I$>1
+	#pragma unroll $I$
+	#endif
+	#if $I$>1
+	for (; gid < $N$; gid += $G$) {
+	#endif
+	#if $I$>0
 		out[gid] = in[gid];
-		gid += $STRIDE$;
+	#endif
+	#if $I$>1
 	}
-}
+	#endif
 
-``
-flops_per_thread = 0;
-kname = "cl_copy_gmem";
-``
+}

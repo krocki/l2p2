@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-04 10:56:35
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-15 10:35:21
+* @Last Modified time: 2017-05-16 16:55:34
 */
 
 #ifndef __CL_FUNCTIONS__
@@ -40,7 +40,7 @@ std::string exec_cl (cl_array<float>& y, cl_array<float>& x, std::string kernel_
 
 	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[kernel_op], 0, sizeof (cl_mem), (void*) &y.ref_device_data) );
 	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[kernel_op], 1, sizeof (cl_mem), (void*) &x.ref_device_data) );
-	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[kernel_op], 2, sizeof (int), (void*) &internal_iterations) );
+	//CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[kernel_op], 2, sizeof (int), (void*) &internal_iterations) );
 
 	cl_config_string += " n=" + std::to_string(n) + " w=" + std::to_string(num_workgroups) + " g=" + std::to_string(global_work_size) + " l=" + std::to_string(local_work_size) + " i=" + std::to_string(internal_iterations);
 
@@ -70,15 +70,17 @@ std::string exec_cl (cl_array<float>& y, cl_array<float>& x, std::string kernel_
 		clGetEventProfilingInfo (__ctx->cl_events[func_string], CL_PROFILING_COMMAND_END, sizeof (time_end), &time_end, NULL);
 		total_time = time_end - time_start;
 
-		std::cout << kernel_op << std::endl;
-		std::cout << x.length() * sizeof(float) << std::endl;
-		std::cout << y.length() * sizeof(float) << std::endl;
+		// std::cout << kernel_op << std::endl;
+		// std::cout << x.length() * sizeof(float) << std::endl;
+		// std::cout << y.length() * sizeof(float) << std::endl;
+
+		// std::cout << kernel_op << std::endl;
 
 		pdata[kernel_op].key = kernel_op;
 		pdata[kernel_op].time += total_time;
 		pdata[kernel_op].calls += 1;
-		pdata[kernel_op].flops += __ctx->kernels[kernel_op].flops * x.length();
-		std::cout << __ctx->kernels[kernel_op].flops * x.length() << std::endl;
+		pdata[kernel_op].flops += __ctx->kernels[kernel_op].flops;
+		// std::cout << __ctx->kernels[kernel_op].flops * x.length() << std::endl;
 		pdata[kernel_op].bytes_in += x.length() * sizeof(float);
 		pdata[kernel_op].bytes_out += y.length() * sizeof(float);
 

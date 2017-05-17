@@ -28,6 +28,8 @@ class cl_ctx {
 
 	bool _initialized = false;
 
+	std::string log = "";
+
   public:
 
 	Dict<cl_event> cl_events;
@@ -63,14 +65,14 @@ class cl_ctx {
 	// TODO: requested_device_type = GPU/CPU, ...
 	int init (int requested_device = 0, cl_device_type dev_type = CL_DEVICE_TYPE_ALL) {
 
-		printf ("Querying OpenCL...\n");
+		log += "Querying OpenCL...\n";
 
 		available_devices.clear();
 		std::vector <compute_device_info> clDevices = clUtils::listDevices (dev_type);
 		available_devices.insert (available_devices.end(), clDevices.begin(), clDevices.end() );
 
 		for (unsigned int i = 0; i < available_devices.size(); i++) {
-			printf ("[%2d]: %s [%s, local id = %ld]\n", i, available_devices[i].name.c_str(), available_devices[i].type.c_str(), available_devices[i].localNum);
+			log += string_format ("[%2d]: %s [%s, local id = %ld]\n", i, available_devices[i].name.c_str(), available_devices[i].type.c_str(), available_devices[i].localNum);
 		}
 
 		int requestedDevice = requested_device;
@@ -79,25 +81,25 @@ class cl_ctx {
 			selected_device = (unsigned) requestedDevice;
 
 		else
-			printf ("Device %d is not available!\n", requestedDevice);
+			log += string_format ("Device %d is not available!\n", requestedDevice);
 
-		printf ("Selected Device: %u (%s) \n", selected_device, available_devices[selected_device].name.c_str() );
+		log += string_format ("Selected Device: %u (%s) \n", selected_device, available_devices[selected_device].name.c_str() );
 		/* Setup OpenCL environment. */
 		CL_SAFE_CALL (clGetPlatformIDs (1, &platform, NULL) );
 		device_in_use = (cl_device_id) available_devices[selected_device].localNum;
 		current_device_properties = clUtils::getDevice (device_in_use);
 
-		printf ("device_string: %s\n", current_device_properties.device_string.c_str() );
-		printf ("compute_units: %u\n", current_device_properties.compute_units);
-		printf ("workgroup_size: %zu\n", current_device_properties.workgroup_size);
-		printf ("workitem_size: %zu x %zu x %zu\n",
-		        current_device_properties.workitem_size[0],
-		        current_device_properties.workitem_size[1],
-		        current_device_properties.workitem_size[2]);
+		log += string_format ("device_string: %s\n", current_device_properties.device_string.c_str() );
+		log += string_format ("compute_units: %u\n", current_device_properties.compute_units);
+		log += string_format ("workgroup_size: %zu\n", current_device_properties.workgroup_size);
+		log += string_format ("workitem_size: %zu x %zu x %zu\n",
+		                      current_device_properties.workitem_size[0],
+		                      current_device_properties.workitem_size[1],
+		                      current_device_properties.workitem_size[2]);
 
-		printf ("global_mem_size: %llu\n", (long long unsigned int) current_device_properties.global_mem_size);
-		printf ("local_mem_size: %llu\n", (long long unsigned int) current_device_properties.local_mem_size);
-		printf ("preferred_vector: %u\n", current_device_properties.preferred_vector);
+		log += string_format ("global_mem_size: %llu\n", (long long unsigned int) current_device_properties.global_mem_size);
+		log += string_format ("local_mem_size: %llu\n", (long long unsigned int) current_device_properties.local_mem_size);
+		log += string_format ("preferred_vector: %u\n", current_device_properties.preferred_vector);
 
 
 		if (zero_copy_mem) {
@@ -113,7 +115,7 @@ class cl_ctx {
 		}
 
 		const std::string color_message = "\x1b[33m[ workgroup_size = " + std::to_string (local_work_size) + " ]\x1b[0m\n" + "\x1b[33m[ num_workgroups = " + std::to_string (num_workgroups) + " ]\x1b[0m\n";
-		std::cout << std::endl << color_message << std::endl;
+		log += "\n" + color_message + "\n";
 
 		//props[1] = (cl_context_properties)platform;
 		cl_int err;
@@ -139,11 +141,11 @@ class cl_ctx {
 
 	int add_program(std::string program_name, const char* fname, const char* build_flags = "") {
 
-		printf ("building program '%s' from file '%s'\n", program_name.c_str(), fname);
+		log += string_format ("building program '%s' from file '%s'\n", program_name.c_str(), fname);
 		cl_programs[program_name] = clUtils::compileProgram (fname, _ctx, device_in_use, build_flags);
 
 		if (!cl_programs[program_name]) {
-			printf ("'%s' ('%s') compilation failed\n", program_name.c_str(), fname);
+			log += string_format ("'%s' ('%s') compilation failed\n", program_name.c_str(), fname);
 			return -1;
 		}
 
@@ -151,12 +153,18 @@ class cl_ctx {
 
 	}
 
+	int add_program(std::string program_name, std::string fname, const char* build_flags = "") {
+
+		return add_program(program_name, fname.c_str(), build_flags);
+
+	}
+
 	int add_kernel (std::string kernel_name, std::string program_name) {
 
-		printf ("compiling kernel '%s' from program '%s'\n", kernel_name.c_str(), program_name.c_str());
+		log += string_format ("compiling kernel '%s' from program '%s'\n", kernel_name.c_str(), program_name.c_str());
 
 		if (!cl_programs[program_name]) {
-			printf ("program '%s' does not exist\n", program_name.c_str());
+			log += string_format ("program '%s' does not exist\n", program_name.c_str());
 			return -1;
 		}
 
@@ -164,7 +172,7 @@ class cl_ctx {
 		cl_kernels[kernel_name] = clCreateKernel (cl_programs[program_name], kernel_name.c_str(), &err);
 
 		if (err != CL_SUCCESS) {
-			printf ("clCreateKernel failed with %d, program: '%s', kernel '%s'\n", err, program_name.c_str(), kernel_name.c_str());
+			log += string_format ("clCreateKernel failed with %d, program: '%s', kernel '%s'\n", err, program_name.c_str(), kernel_name.c_str());
 			return -1;
 		}
 
@@ -190,15 +198,22 @@ class cl_ctx {
 
 	}
 
-	void list_loaded_kernels() {
+	std::string loaded_programs() {
 
-		std::cout << "loaded programs: " << std::endl;
+		std::string list = "";
 		for (size_t i = 0; i < cl_programs.entries.size(); i++)
-			std::cout << i << ": " << cl_programs.reverse_namemap[i] << std::endl;
+			list += std::to_string(i) + " " + cl_programs.reverse_namemap[i];
 
-		std::cout << "loaded kernels: " << std::endl;
+		return list;
+	}
+
+	std::string loaded_kernels() {
+
+		std::string list = "";
 		for (size_t i = 0; i < cl_kernels.entries.size(); i++)
-			std::cout <<  i << ": " << cl_kernels.reverse_namemap[i] << std::endl;
+			list += std::to_string(i) + " " + cl_kernels.reverse_namemap[i];
+
+		return list;
 
 	}
 
@@ -232,6 +247,10 @@ class cl_ctx {
 
 	bool& initialized() {
 		return _initialized;
+	}
+
+	std::string& getlog() {
+		return log;
 	}
 
 };

@@ -1,28 +1,45 @@
-__kernel void cl_flops (
-    __global float * restrict out,
-    __global const float * restrict in,
-    const int iters) {
+//__attribute__((vec_type_hint($TV$)))
+__kernel void k_gen_$N$_$L$_$G$_$W$_$I$_$K$_$TV$_fmads (
+    __global $TV$ * restrict out,
+    __global const $TV$ * restrict in) {
 
-	const int _STRIDE_ = get_global_size(0);
-	const int _ITERS_ = iters;
+#if $I$>0
+	int gid = get_global_id (0);
+	$TV$ x, y, z, w;
+#endif
 
-	int _GID_ = get_global_id (0);
+#if $I$>1
+#pragma unroll $I$
+#endif
+#if $I$>1
+	for (; gid < $N$; gid += $G$) {
+#endif
+#if $I$>0
 
-	for (int i = 0; i < _ITERS_; i++) {
+		x = in[gid];
+		y = in[gid] * 3.14f;
+		w = out[gid];
+		z = out[gid] * 6.1243f;
 
-		float x, y;
+#pragma unroll $K$
+		for (int k = 0; k < $K$; k++) {
+			// mad(a,b,c) = a * b + c
+			x = mad(x, y, x); y = mad(y, x, y);
+			w = mad(w, z, w); z = mad(z, w, z);
+			x = mad(x, y, x); y = mad(y, x, y);
+			w = mad(w, z, w); z = mad(z, w, z);
+			x = mad(x, y, x); y = mad(y, x, y);
+			w = mad(w, z, w); z = mad(z, w, z);
+			x = mad(x, y, x); y = mad(y, x, y);
+			w = mad(w, z, w); z = mad(z, w, z);
 
-		x = in[_GID_];
-		y = _GID_;
-
-#define K_ITERS 256
-		//fmads, K_ITERS * 2 flops
-#pragma unroll K_ITERS
-		for (int k = 0; k < K_ITERS; k++) {
-			x += x * y; y += x * y;
 		}
 
-		out[_GID_] = y;
-		_GID_ += _STRIDE_;
+		out[gid] = y + z;
+
+#endif
+#if $I$>1
 	}
+#endif
+
 }

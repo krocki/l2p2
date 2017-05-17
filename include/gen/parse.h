@@ -2,37 +2,50 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-11 11:49:22
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-15 17:09:03
+* @Last Modified time: 2017-05-16 16:18:47
 */
 
 #include <utils/string.h>
 #include <gen/defs.h>
+#include <utils/dict.h>
+#include <tinyexpr.h>
+#include <gen/opt.h>
+#include <cmath>
 
 #ifndef _PARSE_OPS_H_
 #define _PARSE_OPS_H_
 
-code_t process_template(code_t tt) {
-
+code_t process_template(code_t tt, Dict<var_t>& values) {
 	return "[" + tt + "]";
 }
 
-code_t get_var(code_t tt) {
+code_t get_var(code_t tt, Dict<var_t>& values) {
 
-	if (tt == "$STRIDE$") return "get_global_size(0)";
-	if (tt == "$ITERS$") return "iters";
-	if (tt == "$T$") return "float";
-	if (tt == "$V$") return "4";
-
-	return tt;
+	return values[tt];
 
 }
 
-code_t eval_expr(code_t tt) {
+code_t eval_expr(code_t tt, Dict<var_t>& values) {
 
-	return "eval " + tt;
+	bool int_mode = true;
+	std::string clean = subst(tt, "`", ""); // remove extra tags
+
+	int err;
+	std::string evaluated = std::to_string(te_interp(clean.c_str(), &err));
+
+	if (err != 0) printf("eval_expr err at: %d\n", err);
+
+	//emulate c bevaviour for ints
+	if (int_mode) {
+
+		double v_double = atof(evaluated.c_str());
+		int v_int = floor(v_double);
+		evaluated = std::to_string(v_int);
+	}
+
+	return evaluated;
 
 }
-
 
 typedef std::pair<std::string, int> pair_str_int;
 
@@ -63,7 +76,7 @@ std::vector<pair_str_int> find_pattern(std::string input, std::regex re) {
 }
 
 template<class F>
-std::string process_vars(std::string& original_input, std::vector<pair_str_int> vars, F func) {
+std::string process_vars(std::string& original_input, std::vector<pair_str_int> vars, F func, Dict<var_t>& values, bool debug = false) {
 
 	std::string matches = "";
 	std::string out = "";
@@ -80,7 +93,7 @@ std::string process_vars(std::string& original_input, std::vector<pair_str_int> 
 		matches +=  std::string("pos: ") + std::to_string(m_idx) + std::string(" - ") + std::to_string(m_idx + m_length - 1) +  std::string(" = ") + match_str + "   ";
 
 		std::string t = match_str;
-		std::string replacement = func(t);
+		std::string replacement = func(t, values);
 
 		matches += ": " + t + "| ";
 
@@ -92,40 +105,45 @@ std::string process_vars(std::string& original_input, std::vector<pair_str_int> 
 
 	}
 
-	return std::string( " matches" + matches + "\n\n\n" + out);
+	return debug ? std::string( " matches" + matches + "\n\n\n" + out) : out;
 
 }
 
-code_t process_tt(code_t& input) {
+code_t process_tt(code_t& input, Dict<var_t>& values, bool debug = false) {
 
-	code_t output = "\n\n/* process_tt in:\n";
-	output += input + "\n*/";
+	code_t output = "";
+
+	output += "\n\n process_tt in:\n";
+	output += input + "\n";
 
 	code_t newline_string = "####newline!!!!";
 	std::string sanitized_input = subst(input, "\n", newline_string);
-	output += "/* sanitized:\n" + sanitized_input + "\n*/";
+	output += " sanitized:\n" + sanitized_input + "\n";
 
 	//find vars for substitution
 	std::regex t_regex("\\$.*?\\$");
 	std::regex e_regex("`.*?`");
-	std::regex h_regex("``.*?``");
 
 	std::string processed_input = sanitized_input;
 
 	//find vars
-	code_t final_str = process_vars(sanitized_input, find_pattern(sanitized_input, t_regex), get_var);
+	code_t final_str = process_vars(sanitized_input, find_pattern(sanitized_input, t_regex), get_var, values, debug);
 
 	//eval
-	final_str = process_vars(final_str, find_pattern(final_str, e_regex), eval_expr);
+	final_str = process_vars(final_str, find_pattern(final_str, e_regex), eval_expr, values, debug);
 
-	std::string host_str = process_vars(final_str, find_pattern(final_str, h_regex), host_expr);
-
-	output += "/* processed pre:\n" + processed_input + "\n*/";
+	output += " processed pre:\n" + processed_input + "\n";
 	processed_input = subst(processed_input, newline_string, "\n");
-	output += "/* processed post:\n" + processed_input + "\n*/\n";
-	output += "/* final pre:\n" + final_str + "\n*/";
+	output += " processed post:\n" + processed_input + "\n\n";
+	output += "final pre:\n" + final_str + "\n";
 	final_str = subst(final_str, newline_string, "\n");
-	output += "\n\n\n/* final post:\n/*" + final_str + "\n";
+
+	if (debug)
+		output += "\n\n\n/* final post:\n/*" + final_str + "\n";
+	else output = final_str;
+
+	//std::string output_o = remove_non_loops(output);
+
 	return output;
 }
 

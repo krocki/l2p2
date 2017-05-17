@@ -38,23 +38,26 @@ if (NOT L2P2_EIGEN_INCLUDE_DIR)
   list(APPEND L2P2_EXTRA_INCS "${L2P2_EIGEN_INCLUDE_DIR}")
 endif()
 
+set(TINYEXPR_PATH "${CMAKE_CURRENT_SOURCE_DIR}/ext/tinyexpr")
+list(APPEND L2P2_EXTRA_INCS "${TINYEXPR_PATH}")
+
 if (NOT L2P2_INCLUDE_DIR)
   set(L2P2_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
   list(APPEND L2P2_EXTRA_INCS "${L2P2_INCLUDE_DIR}")
 endif()
 
-include_directories(${L2P2_EIGEN_INCLUDE_DIR} ${OPENCL_INCLUDE_DIRS} ${OPENCL_HAS_CPP_BINDINGS} include ${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${L2P2_EIGEN_INCLUDE_DIR} ${OPENCL_INCLUDE_DIRS} ${OPENCL_HAS_CPP_BINDINGS} include ${CMAKE_CURRENT_BINARY_DIR} ${L2P2_EXTRA_INCS})
 
 add_definitions(${L2P2_EXTRA_DEFS})
 
 if(L2P2_BUILD_EXAMPLE)
-  add_executable(example_generate src/examples/generate.cc)
+  add_executable(example_generate src/examples/generate.cc ${TINYEXPR_PATH}/tinyexpr.c)
   #add_executable(example_copy src/examples/copy.cc)
   #add_executable(example_reduce src/examples/reduce.cc)
   #add_executable(example_initcl src/examples/initcl.cc)
   #target_link_libraries(example_reduce ${L2P2_EXTRA_LIBS} ${OPENCL_LIBRARIES})
   #target_link_libraries(example_initcl ${L2P2_EXTRA_LIBS} ${OPENCL_LIBRARIES})
-  #target_link_libraries(example_generate ${L2P2_EXTRA_LIBS} ${OPENCL_LIBRARIES})
+  target_link_libraries(example_generate ${L2P2_EXTRA_LIBS} ${OPENCL_LIBRARIES})
   #target_link_libraries(example_copy ${L2P2_EXTRA_LIBS} ${OPENCL_LIBRARIES})
 endif()
 
@@ -64,7 +67,7 @@ if(L2P2_BUILD_TESTS)
 endif()
 
 if(L2P2_BUILD_BENCHMARKS)
-  add_executable(benchmark_bandwidth src/benchmarks/bandwidth.cc)
+  add_executable(benchmark_bandwidth src/benchmarks/bandwidth.cc ${TINYEXPR_PATH}/tinyexpr.c)
   #add_executable(benchmark_flops src/benchmarks/flops.cc)
   target_link_libraries(benchmark_bandwidth ${L2P2_EXTRA_LIBS} ${OPENCL_LIBRARIES})
   #target_link_libraries(benchmark_flops ${L2P2_EXTRA_LIBS} ${OPENCL_LIBRARIES})
