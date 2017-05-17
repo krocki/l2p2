@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-14 20:55:55
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-16 20:09:36
+* @Last Modified time: 2017-05-16 22:25:31
 */
 
 #include <iostream>
@@ -104,20 +104,50 @@ int main (int argc, char** argv) {
 		std::string results_fname = "bench_" + generic_name + ".txt";
 
 		int requested_device = 0;
+		bool full = false;
 		if (argc > 1) requested_device = atoi (argv[1]);
+		if (argc > 2) full = atoi (argv[2]);
 		init_cl(requested_device);
 
-		std::vector<int> rs = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512};
-		std::vector<int> cs = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512};
-		std::vector<int> ls = {4, 8, 16, 32, 64, 128, 256};
-		std::vector<int> ws = {32, 64, 128, 256, 512, 1024};
-		std::vector<int> vs = {1, 2, 4, 8, 16};
+		std::vector<int> rs;
+		std::vector<int> cs;
+		std::vector<int> ls;
+		std::vector<int> ws;
+		std::vector<int> vs;
 
-		// std::vector<int> rs = {32};
-		// std::vector<int> cs = {64};
-		// std::vector<int> ls = {4};
-		// std::vector<int> ws = {4};
-		// std::vector<int> vs = {4};
+		/*k_gen_16777216_16_4096_256_4096_float8_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 188.89, err 0.00
+		k_gen_16777216_16_2048_128_8192_float16_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 182.14, err 0.00
+		k_gen_16777216_16_8192_512_2048_float4_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 181.19, err 0.00
+		k_gen_16777216_16_4096_256_4096_float16_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 162.81, err 0.00
+		k_gen_16777216_16_8192_512_2048_float8_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 154.28, err 0.00
+		k_gen_16777216_16_16384_1024_1024_float8_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 148.84, err 0.00
+		k_gen_16777216_16_16384_1024_1024_float4_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 144.27, err 0.00
+		k_gen_16777216_16_4096_256_4096_float4_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 139.52, err 0.00
+		k_gen_16777216_16_8192_512_2048_float16_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 139.24, err 0.00
+		k_gen_16777216_128_32768_256_512_float2_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 139.01, err 0.00
+		k_gen_16777216_128_8192_64_2048_float8_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 138.92, err 0.00
+		k_gen_16777216_128_32768_256_512_float4_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 138.88, err 0.00
+		k_gen_16777216_256_8192_32_2048_float8_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 138.79, err 0.00
+		k_gen_16777216_64_8192_128_2048_float8_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 138.77, err 0.00
+		k_gen_16777216_128_16384_128_1024_float4_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 138.67, err 0.00
+		k_gen_16777216_64_32768_512_512_float4_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 138.48, err 0.00
+		k_gen_16777216_32_8192_256_2048_float8_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 138.37, err 0.00*/
+
+		if (full) {
+			rs = {8192, 16384};
+			cs = {8192, 16384};
+			ls = {32, 64, 128, 256};
+			ws = {16, 32, 64, 128, 256, 512, 1024};
+			vs = {1, 2, 4, 8, 16};
+
+		} else {
+			//small
+			rs = {512, 1024};
+			cs = {512, 1024};
+			ls = {1, 2, 4, 8, 16, 32, 64, 128};
+			ws = {4, 8, 16, 32, 64};
+			vs = {1, 2, 4, 8, 16};
+		}
 
 		auto configurations = generate_configurations(rs, cs, ls, ws, vs);
 
@@ -169,10 +199,11 @@ int main (int argc, char** argv) {
 
 				std::ostringstream os;
 
-				os << ++count << "/"  << configurations.size() << ": " << config << "\t" + string_format ("%7.5f GB/s", (double)((pdata[kname].bytes_in + pdata[kname].bytes_out)) / (double)(pdata[kname].time)) + "\t" + string_format ("%7.5f GF/s", (double)((pdata[kname].flops)) / (double)(pdata[kname].time)) + "\terr: " + std::to_string(pdata[kname].errors) + "\n";
-				results += os.str();
-				std::cout << os.str();
+				os << ++count << "/"  << configurations.size() << ": " << config << "\t" + string_format ("%7.5f GB/s", (double)((pdata[kname].bytes_in + pdata[kname].bytes_out)) / (double)(pdata[kname].time)) + "\t" + string_format ("%7.5f GF/s", (double)((pdata[kname].flops)) / (double)(pdata[kname].time) * 1e-9) + "\terr: " + std::to_string(pdata[kname].errors);
+				results += os.str() + "\n";
 
+				std::string top = show_profiling_data(pdata, SORT_BY_BANDW_DESC, prof_enabled, false, 1);
+				std::cout << os.str() + ", " + top + "" << std::endl;
 			}
 
 		}

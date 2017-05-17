@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-14 20:55:55
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-16 20:09:45
+* @Last Modified time: 2017-05-16 22:10:42
 */
 
 #include <iostream>
@@ -97,30 +97,43 @@ int main (int argc, char** argv) {
 
 	try {
 
-		std::string generic_name = "fmads";//"cl_copy_gmem";
+		std::string generic_name = "fmads";
 		std::vector<std::string> gen_list = {generic_name};
 		std::string outpath = "../kernels/generated/src/";
 		std::string debug_fname = "debug_" + generic_name + ".txt";
 		std::string results_fname = "bench_" + generic_name + ".txt";
 
 		int requested_device = 0;
+		bool full = false;
 		if (argc > 1) requested_device = atoi (argv[1]);
+		if (argc > 2) full = atoi (argv[2]);
 		init_cl(requested_device);
 
-		// std::vector<int> rs = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512};
-		// std::vector<int> cs = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512};
-		// std::vector<int> ls = {4, 8, 16, 32, 64, 128, 256};
-		// std::vector<int> ws = {32, 64, 128, 256, 512, 1024};
-		// std::vector<int> vs = {1, 2, 4, 8, 16};
+		std::vector<int> rs;
+		std::vector<int> cs;
+		std::vector<int> ls;
+		std::vector<int> ws;
+		std::vector<int> vs;
+		std::vector<int> fs;
 
-		std::vector<int> fls = {1, 2, 4, 8, 16, 32, 64};
-		std::vector<int> rs = {256};
-		std::vector<int> cs = {256};
-		std::vector<int> ls = {1, 2, 4, 8, 16, 32, 64, 128, 256};
-		std::vector<int> ws = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192};
-		std::vector<int> vs = {1, 2, 4, 8, 16};
+		if (full) {
+			rs = {64};
+			cs = {64};
+			ls = {32, 64, 128, 256};
+			ws = {32, 64, 128, 256, 512, 1024};
+			vs = {1, 2, 4, 8, 16};
+			fs = {1, 8, 64, 256, 1024, 4096, 4096 * 16};
+		} else {
+			//small
+			rs = {64};
+			cs = {64};
+			ls = {4, 8, 16};
+			ws = {16, 32, 64};
+			vs = {1, 2, 4, 8, 16};
+			fs = {1024};
+		}
 
-		auto configurations = generate_configurations(fls, rs, cs, ls, ws, vs);
+		auto configurations = generate_configurations(rs, cs, ls, ws, vs, fs);
 
 		unsigned long long count = 0;
 
@@ -129,24 +142,24 @@ int main (int argc, char** argv) {
 		for (auto& config : configurations) {
 
 			std::string t = "float";
-			int k_iters = std::get<0>(config);
-			int r = std::get<1>(config);
-			int c = std::get<2>(config);
-			int l = std::get<3>(config);
-			int w = std::get<4>(config);
-			int v = std::get<5>(config);
+			int r = std::get<0>(config);
+			int c = std::get<1>(config);
+			int l = std::get<2>(config);
+			int w = std::get<3>(config);
+			int v = std::get<4>(config);
+			int f = std::get<5>(config);
 			int g = l * w;
 			int n = r * c;
 			int iters = (n - 1) / (g * v) + 1;
-
+			int flops_per_byte = f;
 			Dict<var_t> values;
 			values["$N$"] = std::to_string(n);
 			values["$L$"] = std::to_string(l);
 			values["$G$"] = std::to_string(g);
 			values["$W$"] = std::to_string(w);
 			values["$I$"] = std::to_string(iters);
-			values["$K$"] = std::to_string(k_iters);
 			values["$T$"] = t;
+			values["$K$"] = std::to_string(flops_per_byte);
 			values["$V$"] = std::to_string(v);
 			values["$TV$"] = t + (v > 1 ? std::to_string(v) : "");
 
@@ -166,16 +179,17 @@ int main (int argc, char** argv) {
 
 				ocl.add_program(generic_name, fname);
 				ocl.add_kernel (kname, generic_name);
-				ocl.kernels[kname].flops = 8 * k_iters * n;
+				ocl.kernels[kname].flops = 8 * flops_per_byte;
 
 				run_benchmark<float>(r, c, kname, l, w, v);
 
 				std::ostringstream os;
 
-				os << ++count << "/"  << configurations.size() << ": " << config << "\t" + string_format ("%7.5f GB/s", (double)((pdata[kname].bytes_in + pdata[kname].bytes_out)) / (double)(pdata[kname].time)) + "\t" + string_format ("%7.5f GF/s", (double)((pdata[kname].flops)) / (double)(pdata[kname].time)) + "\terr: " + std::to_string(pdata[kname].errors) + "\n";
-				results += os.str();
-				std::cout << os.str();
+				os << ++count << "/"  << configurations.size() << ": " << config << "\t" + string_format ("%7.5f GB/s", (double)((pdata[kname].bytes_in + pdata[kname].bytes_out)) / (double)(pdata[kname].time)) + "\t" + string_format ("%7.5f GF/s", (double)((pdata[kname].flops)) / (double)(pdata[kname].time) * 1e-9) + "\terr: " + std::to_string(pdata[kname].errors);
+				results += os.str() + "\n";
 
+				std::string top = show_profiling_data(pdata, SORT_BY_FLOPS_DESC, prof_enabled, false, 1);
+				std::cout << os.str() + ", " + top + "" << std::endl;
 			}
 
 		}
@@ -190,7 +204,6 @@ int main (int argc, char** argv) {
 
 		results += "\n\n results ( " + generic_name + "):\n";
 
-		// std::string prof_results = show_profiling_data(pdata, SORT_BY_BANDW_DESC, prof_enabled, true);
 		std::string prof_results = show_profiling_data(pdata, SORT_BY_FLOPS_DESC, prof_enabled, true);
 		std::cout << prof_results << std::endl;
 		write_to_file (results_fname, prof_results, true);

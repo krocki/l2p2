@@ -1,45 +1,71 @@
-//__attribute__((vec_type_hint($TV$)))
+//#define fmad(a,b,c) ((a) * (b) + (c))
+#define fmad(a,b,c) mad(a,b,c)
+__attribute__((vec_type_hint($TV$)))
 __kernel void k_gen_$N$_$L$_$G$_$W$_$I$_$K$_$TV$_fmads (
-    __global $TV$ * restrict out,
-    __global const $TV$ * restrict in) {
+	__global $TV$ * restrict out,
+	__global const $TV$ * restrict in) {
 
-#if $I$>0
+	#if $I$>0
 	int gid = get_global_id (0);
 	$TV$ x, y, z, w;
-#endif
+	#endif
 
-#if $I$>1
-#pragma unroll $I$
-#endif
-#if $I$>1
+	#if $I$>1
+	#pragma unroll $I$
+	#endif
+	#if $I$>1
 	for (; gid < $N$; gid += $G$) {
-#endif
-#if $I$>0
-
+	#endif
+		#if $I$>0
 		x = in[gid];
 		y = in[gid] * 3.14f;
 		w = out[gid];
 		z = out[gid] * 6.1243f;
 
-#pragma unroll $K$
+		#pragma unroll $K$
 		for (int k = 0; k < $K$; k++) {
 			// mad(a,b,c) = a * b + c
-			x = mad(x, y, x); y = mad(y, x, y);
-			w = mad(w, z, w); z = mad(z, w, z);
-			x = mad(x, y, x); y = mad(y, x, y);
-			w = mad(w, z, w); z = mad(z, w, z);
-			x = mad(x, y, x); y = mad(y, x, y);
-			w = mad(w, z, w); z = mad(z, w, z);
-			x = mad(x, y, x); y = mad(y, x, y);
-			w = mad(w, z, w); z = mad(z, w, z);
-
+			x = fmad(x, y, x); y = fmad(y, x, y);
+			w = fmad(w, z, w); z = fmad(z, w, z);
 		}
 
 		out[gid] = y + z;
-
-#endif
-#if $I$>1
+		#endif
+	#if $I$>1
 	}
-#endif
+	#endif
 
 }
+
+// #if $I$>0
+//	int gid = get_global_id (0);
+//	$TV$ x, y, z, w;
+// #endif
+
+// #if $I$>1
+// #pragma unroll $I$
+// #endif
+// #if $I$>1
+//	for (; gid < $N$; gid += $G$) {
+// #endif
+// #if $I$>0
+
+//		x = in[gid];
+//		y = in[gid] * 3.14f;
+//		w = out[gid];
+//		z = out[gid] * 6.1243f;
+
+//#pragma unroll $K$
+//		for (int k = 0; k < $K$; k++) {
+
+			// mad(a,b,c) = a * b + c
+//			x = fmad(x, y, x); y = fmad(y, x, y);
+//			w = fmad(w, z, w); z = fmad(z, w, z);
+//		}
+
+//		out[gid] = y + z;
+
+// #endif
+// #if $I$>1
+//	}
+// #endif

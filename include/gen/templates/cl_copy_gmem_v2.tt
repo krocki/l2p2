@@ -1,11 +1,23 @@
-__kernel void k_gen_$N$_$L$_$W$_$I$_$T$$V$_cl_copy_gmem (
-    __global $T$$V$ * restrict out,
-    __global const $T$$V$ * restrict in) {
+__kernel void k_gen_$N$_$L$_$G$_$W$_$I$_$TV$_cl_copy_gmem (
+	__global $TV$ * restrict out,
+	__global const $TV$ * restrict in) {
 
-	const int gid = get_global_id (0);
+	#if $I$>0
+	int gid = get_global_id (0);
+	#endif
 
-#pragma unroll `$I$ / $V$`
-	for (int i = 0; i < `$I$ / $V$`; i++) {
-		out[gid + i*$G$] = in[gid + i*$G$];
+	#if $I$>1
+	#pragma unroll $I$
+	#endif
+	#if $I$>1
+	for (int i = 0; i < $I$; i++) {
+	#endif
+	#if $I$>0
+		out[gid] = in[gid];
+	#endif
+	#if $I$>1
+	gid += $G#;
 	}
+	#endif
+
 }

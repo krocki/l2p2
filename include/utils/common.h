@@ -28,7 +28,8 @@
 
 // misc functions
 
-bool isNaNInf (float f) {
+template<typename T>
+bool isNaNInf (T f) {
 	return (std::isnan (f) || std::isinf (f) );
 }
 

@@ -1,12 +1,12 @@
 //__attribute__((vec_type_hint($TV$)))
 __kernel void k_gen_$N$_$L$_$G$_$W$_$I$_$TV$_cl_copy_gmem (
-    __global $TV$ * restrict out,
-    __global const $TV$ * restrict in) {
+	__global $TV$ * restrict out,
+	__global const $TV$ * restrict in) {
 
-    #if $I$>0
-    int gid = get_global_id (0);
-    #endif
-    
+	#if $I$>0
+	int gid = get_global_id (0);
+	#endif
+
 	#if $I$>1
 	#pragma unroll $I$
 	#endif

@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-04 10:56:35
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-16 16:55:34
+* @Last Modified time: 2017-05-16 21:57:38
 */
 
 #ifndef __CL_FUNCTIONS__
@@ -79,7 +79,7 @@ std::string exec_cl (cl_array<float>& y, cl_array<float>& x, std::string kernel_
 		pdata[kernel_op].key = kernel_op;
 		pdata[kernel_op].time += total_time;
 		pdata[kernel_op].calls += 1;
-		pdata[kernel_op].flops += __ctx->kernels[kernel_op].flops;
+		pdata[kernel_op].flops += __ctx->kernels[kernel_op].flops * (double(x.length()) * 1e-9);
 		// std::cout << __ctx->kernels[kernel_op].flops * x.length() << std::endl;
 		pdata[kernel_op].bytes_in += x.length() * sizeof(float);
 		pdata[kernel_op].bytes_out += y.length() * sizeof(float);

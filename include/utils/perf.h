@@ -108,7 +108,7 @@ class performance_counter {
 		results += string_format (", T %3.3f s", time * 1e-9);
 		results += string_format (", t/call %3.3f ms", (1e-6 * time) / ((double)calls));
 
-		results += string_format (", GF/s %5.2f", ((double)(flops) / (double)(time)));
+		results += string_format (", GF/s %5.2f", ((double)(flops) / (double)(time * 1e-9)));
 		results += string_format (", GB/s %5.2f", ((double)bytes_in + (double)bytes_out) / (double)time);
 		results += string_format (", err %3.2f", ((double)errors / (double)calls));
 
@@ -119,7 +119,7 @@ class performance_counter {
 
 };
 
-std::string show_profiling_data (Dict<performance_counter>& pdata, sort_method_type sort_method = SORT_BY_TIME_DESC, profiling_type ptype = OFF, bool reset_counters = true) {
+std::string show_profiling_data (Dict<performance_counter>& pdata, sort_method_type sort_method = SORT_BY_TIME_DESC, profiling_type ptype = OFF, bool reset_counters = true, size_t show_top_k = 0) {
 
 	unsigned long total_cl_flops_performed  = 0L;
 	unsigned long total_bytes_in  = 0L;
@@ -131,7 +131,7 @@ std::string show_profiling_data (Dict<performance_counter>& pdata, sort_method_t
 	double total_cl_time = 0.0;
 	end = std::chrono::system_clock::now();
 	double difference = (double) std::chrono::duration_cast<std::chrono::microseconds> (end - start).count() / (double) 1e6;
-	out += std::string("T = ") + std::to_string(difference) + " s\n";
+	// out += std::string("T = ") + std::to_string(difference) + " s\n";
 
 	//first pass
 	for (size_t i = 0; i < pdata.entries.size(); i ++) {
@@ -166,7 +166,11 @@ std::string show_profiling_data (Dict<performance_counter>& pdata, sort_method_t
 
 	case SORT_BY_FLOPS_DESC:
 		sorted_idxs = pdata.sorted_idxs ([&] (size_t i1, size_t i2) {
-			return pdata.entries[i1].flops / pdata.entries[i1].time > pdata.entries[i2].flops / pdata.entries[i2].time;
+			auto f1 = pdata.entries[i1].flops / pdata.entries[i1].time;
+			auto f2 = pdata.entries[i2].flops / pdata.entries[i2].time;
+			if (!isNaNInf (f1) && !isNaNInf (f2))
+				return f1 > f2;
+			else return false;
 		});
 		break;
 
@@ -174,7 +178,11 @@ std::string show_profiling_data (Dict<performance_counter>& pdata, sort_method_t
 		sorted_idxs = pdata.sorted_idxs ([&] (size_t i1, size_t i2) {
 			double B1 = pdata.entries[i1].bytes_in + pdata.entries[i1].bytes_out;
 			double B2 = pdata.entries[i2].bytes_in + pdata.entries[i2].bytes_out;
-			return B1 / pdata.entries[i1].time > B2 / pdata.entries[i2].time;
+			auto b1 = B1 / pdata.entries[i1].time;
+			auto b2 = B2 / pdata.entries[i2].time;
+			if (!isNaNInf (b1) && !isNaNInf (b2))
+				return b1 > b2;
+			else return false;
 		});
 		break;
 
@@ -192,17 +200,26 @@ std::string show_profiling_data (Dict<performance_counter>& pdata, sort_method_t
 	}
 
 	//second pass
-	for (size_t i = 0; i < pdata.entries.size(); i ++) {
+	size_t entries_to_show = show_top_k == 0 ? pdata.entries.size() : show_top_k;
+
+	for (size_t i = 0; i < entries_to_show; i ++) {
 		if (ptype != OFF) {
+
 			out += pdata.reverse_namemap[ sorted_idxs[i] ];
-			out += pdata.entries[ sorted_idxs[i] ].show (difference, total_cl_time, total_cl_flops_performed, total_bytes_in, total_bytes_out);
+			if (show_top_k == 0) {
+
+				out += pdata.entries[ sorted_idxs[i] ].show (difference, total_cl_time, total_cl_flops_performed, total_bytes_in, total_bytes_out);
+			} else {
+
+				out += " " + string_format ("%7.5f GB/s", (double)((pdata.entries[ sorted_idxs[i] ].bytes_in + pdata.entries[ sorted_idxs[i] ].bytes_out)) / (double)(pdata.entries[ sorted_idxs[i] ].time)) + "\t" + string_format ("%7.5f GF/s", (double)((pdata.entries[ sorted_idxs[i] ].flops)) / (double)(pdata.entries[ sorted_idxs[i] ].time * 1e-9));
+			}
 		}
 
 		if (reset_counters)
 			pdata.entries[ sorted_idxs[i] ].reset();
 	}
 
-	if (ptype != OFF) {
+	if (ptype != OFF && show_top_k == 0) {
 		out += "\n";
 		out +=  "Total profiled time: " + std::to_string(1e-9 * total_cl_time) + " s ( " + std::to_string ( (100.0 * (long double) (1e-9 * total_cl_time) / (long double) difference)) + " )\n";
 
