@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-14 20:55:55
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-16 17:01:17
+* @Last Modified time: 2017-05-16 17:04:43
 */
 
 #include <iostream>
@@ -115,8 +115,8 @@ int main (int argc, char** argv) {
 
 		std::vector<int> rs = {8, 16, 32, 64, 128, 256, 512, 1024};
 		std::vector<int> cs = {8, 16, 32, 64, 128, 256, 512, 1024};
-		std::vector<int> ls = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512};
-		std::vector<int> ws = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096};
+		std::vector<int> ls = {1, 2, 4, 8, 16, 32, 64, 128, 256};
+		std::vector<int> ws = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192};
 		std::vector<int> vs = {1, 2, 4, 8, 16};
 
 		auto configurations = generate_configurations(rs, cs, ls, ws, vs);
