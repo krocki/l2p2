@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-14 20:55:55
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-16 17:04:43
+* @Last Modified time: 2017-05-16 20:09:36
 */
 
 #include <iostream>
@@ -97,9 +97,9 @@ int main (int argc, char** argv) {
 
 	try {
 
-		std::string generic_name = "fmads";//"cl_copy_gmem";
+		std::string generic_name = "cl_copy_gmem";
 		std::vector<std::string> gen_list = {generic_name};
-		std::string outpath = "../include/cl/kernels/generated/";
+		std::string outpath = "../kernels/generated/src/";
 		std::string debug_fname = "debug_" + generic_name + ".txt";
 		std::string results_fname = "bench_" + generic_name + ".txt";
 
@@ -107,17 +107,17 @@ int main (int argc, char** argv) {
 		if (argc > 1) requested_device = atoi (argv[1]);
 		init_cl(requested_device);
 
-		// std::vector<int> rs = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512};
-		// std::vector<int> cs = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512};
-		// std::vector<int> ls = {4, 8, 16, 32, 64, 128, 256};
-		// std::vector<int> ws = {32, 64, 128, 256, 512, 1024};
-		// std::vector<int> vs = {1, 2, 4, 8, 16};
-
-		std::vector<int> rs = {8, 16, 32, 64, 128, 256, 512, 1024};
-		std::vector<int> cs = {8, 16, 32, 64, 128, 256, 512, 1024};
-		std::vector<int> ls = {1, 2, 4, 8, 16, 32, 64, 128, 256};
-		std::vector<int> ws = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192};
+		std::vector<int> rs = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512};
+		std::vector<int> cs = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512};
+		std::vector<int> ls = {4, 8, 16, 32, 64, 128, 256};
+		std::vector<int> ws = {32, 64, 128, 256, 512, 1024};
 		std::vector<int> vs = {1, 2, 4, 8, 16};
+
+		// std::vector<int> rs = {32};
+		// std::vector<int> cs = {64};
+		// std::vector<int> ls = {4};
+		// std::vector<int> ws = {4};
+		// std::vector<int> vs = {4};
 
 		auto configurations = generate_configurations(rs, cs, ls, ws, vs);
 
@@ -136,14 +136,13 @@ int main (int argc, char** argv) {
 			int g = l * w;
 			int n = r * c;
 			int iters = (n - 1) / (g * v) + 1;
-			int iters2 = 128;
+
 			Dict<var_t> values;
 			values["$N$"] = std::to_string(n);
 			values["$L$"] = std::to_string(l);
 			values["$G$"] = std::to_string(g);
 			values["$W$"] = std::to_string(w);
 			values["$I$"] = std::to_string(iters);
-			values["$K$"] = std::to_string(iters2);
 			values["$T$"] = t;
 			values["$V$"] = std::to_string(v);
 			values["$TV$"] = t + (v > 1 ? std::to_string(v) : "");
@@ -164,7 +163,7 @@ int main (int argc, char** argv) {
 
 				ocl.add_program(generic_name, fname);
 				ocl.add_kernel (kname, generic_name);
-				ocl.kernels[kname].flops = 16 * 2 * iters2 * n;
+				ocl.kernels[kname].flops = 0;
 
 				run_benchmark<float>(r, c, kname, l, w, v);
 
@@ -188,8 +187,7 @@ int main (int argc, char** argv) {
 
 		results += "\n\n results ( " + generic_name + "):\n";
 
-		// std::string prof_results = show_profiling_data(pdata, SORT_BY_BANDW_DESC, prof_enabled, true);
-		std::string prof_results = show_profiling_data(pdata, SORT_BY_FLOPS_DESC, prof_enabled, true);
+		std::string prof_results = show_profiling_data(pdata, SORT_BY_BANDW_DESC, prof_enabled, true);
 		std::cout << prof_results << std::endl;
 		write_to_file (results_fname, prof_results, true);
 
