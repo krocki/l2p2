@@ -15,7 +15,7 @@
 
 class cl_ctx {
 
-  private:
+private:
 
 	cl_platform_id platform = 0;
 
@@ -30,7 +30,7 @@ class cl_ctx {
 
 	std::string log = "";
 
-  public:
+public:
 
 	Dict<cl_event> cl_events;
 	Dict<cl_kernel> cl_kernels;
@@ -202,7 +202,7 @@ class cl_ctx {
 
 		std::string list = "";
 		for (size_t i = 0; i < cl_programs.entries.size(); i++)
-			list += std::to_string(i) + " " + cl_programs.reverse_namemap[i];
+			list += std::to_string(i) + " " + cl_programs.reverse_namemap[i] + " ";
 
 		return list;
 	}
@@ -211,7 +211,7 @@ class cl_ctx {
 
 		std::string list = "";
 		for (size_t i = 0; i < cl_kernels.entries.size(); i++)
-			list += std::to_string(i) + " " + cl_kernels.reverse_namemap[i];
+			list += std::to_string(i) + " " + cl_kernels.reverse_namemap[i] + " ";
 
 		return list;
 

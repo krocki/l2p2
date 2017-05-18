@@ -1,12 +1,13 @@
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-05-14 20:55:55
-* @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-16 22:25:31
+* @Last Modified by:   Kamil M Rocki
+* @Last Modified time: 2017-05-18 12:50:08
 */
 
 #include <iostream>
 #include <utils/ansi_colors.h>
+#include <random>
 
 #include <array/eigen.h>
 #include <cl/cl_ctx.h>
@@ -48,6 +49,8 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize = 1, int n
 
 	// make an opencl copy of the eigen array
 	size_t padding = lsize * ngroups * vecn;
+	//std::cout << "padding: " << lsize << ", " << ngroups << ", " << vecn << ", = " << padding << std::endl;
+
 	cl_array<T> x = cl_array<T> (&ocl, ref, padding);
 	cl_array<T> y = cl_array<T> (&ocl, ref.rows(), ref.cols(), padding);
 
@@ -61,7 +64,7 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize = 1, int n
 
 	std::string perf_key = op;
 
-	_CL_TIMED_CALL_(cl_config_string = exec_cl (y, x, op, lsize, ngroups, profile_cl), ocl, perf_key);
+	_CL_TIMED_CALL_(cl_config_string = exec_cl (y, x, op, lsize, ngroups, vecn, profile_cl), ocl, perf_key);
 
 	// copy device data to host
 	y.sync_host();
@@ -87,73 +90,79 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize = 1, int n
 
 }
 
-template <typename ...T>
-auto generate_configurations(std::vector<T>& ...is) {
+typedef enum {IN_ORDER = 0, RANDOM_SHUFFLE = 1} ITEM_ORDER;
 
-	return cross(is...);
+template <typename ...T>
+auto generate_configurations(ITEM_ORDER ord, std::vector<T>& ...is) {
+
+	auto confs = cross(is...);
+	if (ord == RANDOM_SHUFFLE) {
+		std::cout << "ord = RANDOM_SHUFFLE" << std::endl;
+		std::srand ( unsigned ( std::time(0) ) );
+		std::shuffle ( confs.begin(), confs.end(), std::mt19937{std::random_device{}()});
+	}
+	return confs;
 }
 
 int main (int argc, char** argv) {
 
 	try {
 
+		start = std::chrono::system_clock::now();
+
 		std::string generic_name = "cl_copy_gmem";
-		std::vector<std::string> gen_list = {generic_name};
+		std::string generic_name2 = "cl_copy_gmem_v2";
+		std::string generic_name3 = "cl_copy_gmem_v3";
+		std::vector<std::string> gen_list = {generic_name, generic_name2, generic_name3};
+
 		std::string outpath = "../kernels/generated/src/";
 		std::string debug_fname = "debug_" + generic_name + ".txt";
 		std::string results_fname = "bench_" + generic_name + ".txt";
 
 		int requested_device = 0;
-		bool full = false;
 		if (argc > 1) requested_device = atoi (argv[1]);
-		if (argc > 2) full = atoi (argv[2]);
 		init_cl(requested_device);
 
-		std::vector<int> rs;
-		std::vector<int> cs;
-		std::vector<int> ls;
+		std::vector<int> rs(3);
+		std::vector<int> cs = {1};
+		std::vector<int> ls = {};
 		std::vector<int> ws;
-		std::vector<int> vs;
+		std::vector<int> vs = {};
+		std::vector<int> hs = {0, 1}; //__attribute__((vec_type_hint(T)))
 
-		/*k_gen_16777216_16_4096_256_4096_float8_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 188.89, err 0.00
-		k_gen_16777216_16_2048_128_8192_float16_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 182.14, err 0.00
-		k_gen_16777216_16_8192_512_2048_float4_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 181.19, err 0.00
-		k_gen_16777216_16_4096_256_4096_float16_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 162.81, err 0.00
-		k_gen_16777216_16_8192_512_2048_float8_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 154.28, err 0.00
-		k_gen_16777216_16_16384_1024_1024_float8_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 148.84, err 0.00
-		k_gen_16777216_16_16384_1024_1024_float4_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 144.27, err 0.00
-		k_gen_16777216_16_4096_256_4096_float4_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 139.52, err 0.00
-		k_gen_16777216_16_8192_512_2048_float16_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 139.24, err 0.00
-		k_gen_16777216_128_32768_256_512_float2_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 139.01, err 0.00
-		k_gen_16777216_128_8192_64_2048_float8_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 138.92, err 0.00
-		k_gen_16777216_128_32768_256_512_float4_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 138.88, err 0.00
-		k_gen_16777216_256_8192_32_2048_float8_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 138.79, err 0.00
-		k_gen_16777216_64_8192_128_2048_float8_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 138.77, err 0.00
-		k_gen_16777216_128_16384_128_1024_float4_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 138.67, err 0.00
-		k_gen_16777216_64_32768_512_512_float4_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 138.48, err 0.00
-		k_gen_16777216_32_8192_256_2048_float8_cl_copy_gmem, err/total 000000/000001, T 0.000 s, t/call 0.000 ms, GF/s  0.00, GB/s 138.37, err 0.00*/
+		std::cout << ocl.current_device_properties.device_string + "\n";
 
-		if (full) {
-			rs = {8192, 16384};
-			cs = {8192, 16384};
-			ls = {32, 64, 128, 256};
-			ws = {16, 32, 64, 128, 256, 512, 1024};
+		if (is_cpu(ocl.current_device_properties)) {
+
+			std::cout << "CPU" << std::endl;
+			std::generate_n(rs.begin(), rs.size(), [] { static int i {1 << 12}; return i <<= 4; });
+			ls = {1, 2, 4, 8, 16, 18, 32, 36, 72};
+			ws = {1, 2, 4, 8, 16, 18, 32, 36, 72};
 			vs = {1, 2, 4, 8, 16};
 
 		} else {
-			//small
-			rs = {512, 1024};
-			cs = {512, 1024};
-			ls = {1, 2, 4, 8, 16, 32, 64, 128};
-			ws = {4, 8, 16, 32, 64};
+
+			std::cout << "GPU" << std::endl;
+			std::generate_n(rs.begin(), rs.size(), [] { static int i {1 << 12}; return i <<= 4; });
+			ws.resize(10);
+			std::generate_n(ws.begin(), ws.size(), [] { static int i {ocl.current_device_properties.compute_units}; return i += ocl.current_device_properties.compute_units; });
+			ls = {16, 32, 64, 128, 256, 512, 1024};
 			vs = {1, 2, 4, 8, 16};
+
 		}
 
-		auto configurations = generate_configurations(rs, cs, ls, ws, vs);
+		auto configurations = generate_configurations(RANDOM_SHUFFLE, rs, cs, ls, ws, vs, hs);
+
+		long double top_gb = 0;
+		std::string conf_str_gb = "";
+		long double top_gf = 0;
+		std::string conf_str_gf = "";
 
 		unsigned long long count = 0;
 
 		std::string results = "";
+
+		results += "OPENCL LOG:\n" + ocl.getlog() + "--- OPENCL LOG\n";
 
 		for (auto& config : configurations) {
 
@@ -163,12 +172,18 @@ int main (int argc, char** argv) {
 			int l = std::get<2>(config);
 			int w = std::get<3>(config);
 			int v = std::get<4>(config);
+			int h = std::get<5>(config);
 			int g = l * w;
-			int n = r * c;
-			int iters = (n - 1) / (g * v) + 1;
+			int n = round_up_multiple(r * c, g * v); // round up to the nearest multiple of a block of threads
+			assert (n % (g * v) == 0);
+
+			int iters = n / (g * v); // need exactly iters iterations
 
 			Dict<var_t> values;
 			values["$N$"] = std::to_string(n);
+			assert (n % v == 0);
+			values["$S$"] = std::to_string(n / v);
+			values["$H$"] = std::to_string(h);
 			values["$L$"] = std::to_string(l);
 			values["$G$"] = std::to_string(g);
 			values["$W$"] = std::to_string(w);
@@ -177,12 +192,18 @@ int main (int argc, char** argv) {
 			values["$V$"] = std::to_string(v);
 			values["$TV$"] = t + (v > 1 ? std::to_string(v) : "");
 
+			// std::cout << "N " << n << std::endl;
+			// std::cout << "L " << l << std::endl;
+			// std::cout << "G " << g << std::endl;
+			// std::cout << "W " << w << std::endl;
+			// std::cout << "I " << iters << std::endl;
+
 			for (auto& i : gen_list) {
 
 				code_t k_code = make_tt (i, values, false);
 
 				// find out kernel name:
-				std::regex kname_re ("k_gen_.*?" + generic_name);
+				std::regex kname_re ("k_gen_.*?" + i);
 				std::vector<pair_str_int> matches = find_pattern(k_code, kname_re);
 				std::string kname = matches.size() > 0 ? matches[0].first : i;
 				std::string fname = outpath + kname + ".cl";
@@ -191,39 +212,50 @@ int main (int argc, char** argv) {
 
 				//std::cout << "generated \"" + i + "\" :\n>>>>>>>>>>>>>>>\n" + k_code + "\n<<<<<<<<<<<<<<<\nwritten to: " + fname + "\n";
 
-				ocl.add_program(generic_name, fname);
-				ocl.add_kernel (kname, generic_name);
+				ocl.add_program(i, fname);
+				ocl.add_kernel (kname, i);
+				ocl.kernels[kname].bytes_in = (long double)(r * c * sizeof(float)) / (long double)(1 << 30);
+				ocl.kernels[kname].bytes_out = (long double)(r * c * sizeof(float))  / (long double)(1 << 30);
 				ocl.kernels[kname].flops = 0;
+
+				ocl.err = 0;
 
 				run_benchmark<float>(r, c, kname, l, w, v);
 
 				std::ostringstream os;
 
-				os << ++count << "/"  << configurations.size() << ": " << config << "\t" + string_format ("%7.5f GB/s", (double)((pdata[kname].bytes_in + pdata[kname].bytes_out)) / (double)(pdata[kname].time)) + "\t" + string_format ("%7.5f GF/s", (double)((pdata[kname].flops)) / (double)(pdata[kname].time) * 1e-9) + "\terr: " + std::to_string(pdata[kname].errors);
-				results += os.str() + "\n";
+				long double GBs = (pdata[kname].bytes_in + pdata[kname].bytes_out) / (pdata[kname].time);
+				long double GFs = (pdata[kname].flops) / (pdata[kname].time);
 
-				std::string top = show_profiling_data(pdata, SORT_BY_BANDW_DESC, prof_enabled, false, 1);
-				std::cout << os.str() + ", " + top + "" << std::endl;
+				if (GBs > top_gb) { top_gb = GBs; conf_str_gb = "r " + std::to_string(r) + " c " + std::to_string(c) + " r*c " + std::to_string(r * c) + " n " + std::to_string(n) + " l " + std::to_string(l) + " c " + std::to_string(c) + " v " + std::to_string(v ) + " w " + std::to_string(w)  + " h " + std::to_string(h) + " " + i;}
+				if (GFs > top_gf) { top_gf = GFs; conf_str_gf = " r " + std::to_string(r) + " c " + std::to_string(c) + " r*c " + std::to_string(r * c) + " n " + std::to_string(n) + " l " + std::to_string(l) + " c " + std::to_string(c) + " v " + std::to_string(v) + " w " + std::to_string(w) + " h " + std::to_string(h) + " " + i;}
+				os << std::setw(10) << ++count << "/"  << configurations.size() * gen_list.size() << ": " << std::setw(25) << config << "\t" << std::setw(20) << std::to_string(GBs) << " GB/s";
+				//os << std::to_string(GFs) + " GF/s" + "\t";
+				os << std::setw(20) << "\terr: " + std::to_string(pdata[kname].errors) + "\t#1 GB/s = " + std::to_string(top_gb) + "\t" + conf_str_gb + "\n";
+
+				results += os.str();
+				std::cout << os.str();
+
 			}
 
 		}
 
-		results += "OPENCL LOG:\n" + ocl.getlog() + "--- OPENCL LOG\n";
 		results += std::to_string(configurations.size()) + " configurations:\n";
 
-		results += pretty_print(configurations);
+		//results += pretty_print(configurations);
 
 		results += std::string("loaded programs:\n") + ocl.loaded_programs() + "\n\n\n";
 		results += std::string("loaded kernels:\n") + ocl.loaded_kernels() + "\n\n\n";
 
-		results += "\n\n results ( " + generic_name + "):\n";
+		results += "\n\nresults ( " + generic_name + "):\n";
 
 		std::string prof_results = show_profiling_data(pdata, SORT_BY_BANDW_DESC, prof_enabled, true);
-		std::cout << prof_results << std::endl;
+		std::cout << "\n" << prof_results << "\n";
 		write_to_file (results_fname, prof_results, true);
 
 		results += prof_results;
 		results += "errors: " + std::to_string(total_errors) + "/" + std::to_string(total_runs);
+		std::cout << "errors: " + std::to_string(total_errors) + "/" + std::to_string(total_runs) + "\n\n";
 
 		write_to_file (debug_fname, results, true);
 

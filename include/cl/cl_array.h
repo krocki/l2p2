@@ -26,7 +26,7 @@ unsigned long cl_mem_allocated = 0L;
 template <typename T = float>
 class cl_array {
 
-  public:
+public:
 
 	cl_mem device_data;
 	cl_mem& ref_device_data;
@@ -42,8 +42,7 @@ class cl_array {
 
 	bool prealloc_scratchpad = false;
 	unsigned int lenScratchBuf = 0;
-	size_t padding = 1;
-
+	size_t padding;
 	size_t device_data_size;
 
 	array_t<T> host_data;
@@ -58,7 +57,7 @@ class cl_array {
 	}
 
 	explicit
-	cl_array (cl_ctx* ctx, size_t rows, size_t cols, size_t _pad = 1, bool _prealloc_scratchpad = false) : cl_array (ctx) {
+	cl_array (cl_ctx* ctx, size_t rows, size_t cols, size_t _pad, bool _prealloc_scratchpad = false) : cl_array (ctx) {
 		host_data = array_t<T> (rows, cols);
 		host_data.setZero();
 		ref_host_data = host_data;
@@ -69,7 +68,7 @@ class cl_array {
 	};
 
 	explicit
-	cl_array (cl_ctx* ctx, array_t<T>& m, size_t _pad = 1, bool _prealloc_scratchpad = false) : cl_array (ctx) {
+	cl_array (cl_ctx* ctx, array_t<T>& m, size_t _pad, bool _prealloc_scratchpad = false) : cl_array (ctx) {
 		host_data = m;
 		ref_host_data = host_data;
 		prealloc_scratchpad = _prealloc_scratchpad;
@@ -118,6 +117,7 @@ class cl_array {
 
 
 	}
+
 	int setZero () {
 
 		return set(T(0));
@@ -199,9 +199,11 @@ template <typename T = float>
 int cl_alloc_from_matrix (cl_ctx* clctx, cl_mem& buffer, array_t<T>& h, size_t padding, cl_mem_flags flags) {
 
 	size_t host_size = h.rows() * h.cols();
-	size_t device_data_size = host_size > 0 ? ((((host_size + padding - 1)) / padding) * padding) : padding;
+	size_t device_data_size = round_up_multiple(host_size, padding);
 
 	size_t alloc_size = sizeof (T) * device_data_size;
+
+	//std::cout << "cl_alloc_from_matrix " << " host" << host_size << ", " << " alloc_size" << alloc_size << std::endl;
 
 	if (clctx == nullptr) {
 		printf ("cl_alloc_from_matrix: clctx == null!\n");
@@ -236,6 +238,8 @@ int cl_copy_matrix_to_device (cl_ctx* ctx, cl_mem device_data, array_t<T>& src) 
 	size_t bytes = src.rows() * src.cols() * sizeof (T);
 	std::string event_string = "cl_copy_matrix_to_device";
 
+	//std::cout << "cl_copy_matrix_to_device " << bytes <<  std::endl;
+
 	//if (ctx->profiling_enabled) clFinish (ctx->queue() );
 
 	//if (ctx->zero_copy_mem) {
@@ -259,6 +263,7 @@ int cl_copy_matrix_to_host (cl_ctx* ctx, array_t<T>& dst, cl_mem device_data) {
 
 	size_t bytes = dst.rows() * dst.cols() * sizeof (T);
 
+	//std::cout << "cl_copy_matrix_to_host " << bytes <<  std::endl;
 	//if (ctx->zero_copy_mem) {
 
 	//CL_SAFE_CALL (clEnqueueMapBuffer());, flags: CL_MAP_READ

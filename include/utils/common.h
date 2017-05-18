@@ -25,12 +25,38 @@
 #include <numeric> // iota
 #include <algorithm> // sort
 #include <vector>
+#include <chrono> // timer
 
 // misc functions
 
-template<typename T>
-bool isNaNInf (T f) {
+bool isNaNInf (float f) {
 	return (std::isnan (f) || std::isinf (f) );
+}
+
+size_t round_up_multiple(size_t num, size_t multiple) {
+
+	assert(multiple);
+	return ((num + multiple - 1) / multiple) * multiple;
+
+}
+
+size_t is_multiple(size_t num, size_t multiple) {
+
+	assert(multiple);
+	return (num % multiple) == 0;
+
+}
+
+bool is_pow2(size_t num) {
+
+	return (num & (num - 1)) == 0;
+}
+
+size_t round_up_multiple_pow2(size_t num, size_t multiple) {
+
+	assert(multiple && is_pow2(multiple));
+	return (num + multiple - 1) & ~(multiple - 1);
+
 }
 
 // sort and keep track of indices
@@ -91,7 +117,7 @@ auto operator<<(std::basic_ostream<Ch, Tr>& os, std::tuple<Args...> const& t)
 -> std::basic_ostream<Ch, Tr>& {
 	os << "{";
 	aux::print_tuple(os, t, aux::gen_seq<sizeof...(Args)>());
-	return os << "}";
+	return os << "}\t";
 }
 
 template<typename... Ts, size_t I = 1>

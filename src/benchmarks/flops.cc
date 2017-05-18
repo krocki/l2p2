@@ -1,8 +1,8 @@
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-05-14 20:55:55
-* @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-16 22:10:42
+* @Last Modified by:   Kamil M Rocki
+* @Last Modified time: 2017-05-18 06:39:44
 */
 
 #include <iostream>
@@ -48,6 +48,8 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize = 1, int n
 
 	// make an opencl copy of the eigen array
 	size_t padding = lsize * ngroups * vecn;
+	//std::cout << "padding: " << lsize << ", " << ngroups << ", " << vecn << ", = " << padding << std::endl;
+
 	cl_array<T> x = cl_array<T> (&ocl, ref, padding);
 	cl_array<T> y = cl_array<T> (&ocl, ref.rows(), ref.cols(), padding);
 
@@ -61,7 +63,7 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize = 1, int n
 
 	std::string perf_key = op;
 
-	_CL_TIMED_CALL_(cl_config_string = exec_cl (y, x, op, lsize, ngroups, profile_cl), ocl, perf_key);
+	_CL_TIMED_CALL_(cl_config_string = exec_cl (y, x, op, lsize, ngroups, vecn, profile_cl), ocl, perf_key);
 
 	// copy device data to host
 	y.sync_host();
@@ -97,43 +99,30 @@ int main (int argc, char** argv) {
 
 	try {
 
-		std::string generic_name = "fmads";
+		std::string generic_name = "fmads";//"cl_copy_gmem";
 		std::vector<std::string> gen_list = {generic_name};
 		std::string outpath = "../kernels/generated/src/";
 		std::string debug_fname = "debug_" + generic_name + ".txt";
 		std::string results_fname = "bench_" + generic_name + ".txt";
 
 		int requested_device = 0;
-		bool full = false;
 		if (argc > 1) requested_device = atoi (argv[1]);
-		if (argc > 2) full = atoi (argv[2]);
 		init_cl(requested_device);
 
-		std::vector<int> rs;
-		std::vector<int> cs;
-		std::vector<int> ls;
-		std::vector<int> ws;
-		std::vector<int> vs;
-		std::vector<int> fs;
+		// std::vector<int> rs = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512};
+		// std::vector<int> cs = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512};
+		// std::vector<int> ls = {4, 8, 16, 32, 64, 128, 256};
+		// std::vector<int> ws = {32, 64, 128, 256, 512, 1024};
+		// std::vector<int> vs = {1, 2, 4, 8, 16};
 
-		if (full) {
-			rs = {64};
-			cs = {64};
-			ls = {32, 64, 128, 256};
-			ws = {32, 64, 128, 256, 512, 1024};
-			vs = {1, 2, 4, 8, 16};
-			fs = {1, 8, 64, 256, 1024, 4096, 4096 * 16};
-		} else {
-			//small
-			rs = {64};
-			cs = {64};
-			ls = {4, 8, 16};
-			ws = {16, 32, 64};
-			vs = {1, 2, 4, 8, 16};
-			fs = {1024};
-		}
+		std::vector<int> fls = {1024, 4096, 16384, 16384 * 4};
+		std::vector<int> rs = {512};
+		std::vector<int> cs = {512};
+		std::vector<int> ls = {32, 64, 128, 256, 512, 1024};
+		std::vector<int> ws = {24, 48, 72, 96, 120, 240, 480, 960};
+		std::vector<int> vs = {1};
 
-		auto configurations = generate_configurations(rs, cs, ls, ws, vs, fs);
+		auto configurations = generate_configurations(fls, rs, cs, ls, ws, vs);
 
 		unsigned long long count = 0;
 
@@ -142,24 +131,25 @@ int main (int argc, char** argv) {
 		for (auto& config : configurations) {
 
 			std::string t = "float";
-			int r = std::get<0>(config);
-			int c = std::get<1>(config);
-			int l = std::get<2>(config);
-			int w = std::get<3>(config);
-			int v = std::get<4>(config);
-			int f = std::get<5>(config);
+			int k_iters = std::get<0>(config);
+			int r = std::get<1>(config);
+			int c = std::get<2>(config);
+			int l = std::get<3>(config);
+			int w = std::get<4>(config);
+			int v = std::get<5>(config);
 			int g = l * w;
-			int n = r * c;
-			int iters = (n - 1) / (g * v) + 1;
-			int flops_per_byte = f;
+			int n = round_up_multiple(r * c, g * v); // round up to the nearest multiple of a block of threads
+			assert (n % (g * v) == 0);
+			int iters = n / (g * v); // need exactly iters iterations
+
 			Dict<var_t> values;
 			values["$N$"] = std::to_string(n);
 			values["$L$"] = std::to_string(l);
 			values["$G$"] = std::to_string(g);
 			values["$W$"] = std::to_string(w);
 			values["$I$"] = std::to_string(iters);
+			values["$K$"] = std::to_string(k_iters);
 			values["$T$"] = t;
-			values["$K$"] = std::to_string(flops_per_byte);
 			values["$V$"] = std::to_string(v);
 			values["$TV$"] = t + (v > 1 ? std::to_string(v) : "");
 
@@ -179,17 +169,21 @@ int main (int argc, char** argv) {
 
 				ocl.add_program(generic_name, fname);
 				ocl.add_kernel (kname, generic_name);
-				ocl.kernels[kname].flops = 8 * flops_per_byte;
+				ocl.kernels[kname].bytes_in = (long double)(n * sizeof(float)) / (long double)(1 << 30);
+				ocl.kernels[kname].bytes_out = (long double)(n * sizeof(float))  / (long double)(1 << 30);
+				ocl.kernels[kname].flops = (long double)(((long double)8 / (long double)(1 << 10)) * ((long double)(k_iters) / (long double)(1 << 10)) * ((long double)n / (long double)(1 << 10)));
 
 				run_benchmark<float>(r, c, kname, l, w, v);
 
 				std::ostringstream os;
 
-				os << ++count << "/"  << configurations.size() << ": " << config << "\t" + string_format ("%7.5f GB/s", (double)((pdata[kname].bytes_in + pdata[kname].bytes_out)) / (double)(pdata[kname].time)) + "\t" + string_format ("%7.5f GF/s", (double)((pdata[kname].flops)) / (double)(pdata[kname].time) * 1e-9) + "\terr: " + std::to_string(pdata[kname].errors);
-				results += os.str() + "\n";
+				long double GBs = (pdata[kname].bytes_in + pdata[kname].bytes_out) / (pdata[kname].time);
+				long double GFs = (pdata[kname].flops) / (pdata[kname].time);
+				os << ++count << "/"  << configurations.size() << ": " << config << "\t" << std::to_string(GBs) + " GB/s\t" + std::to_string(GFs) + " GF/s" + "\terr: " + std::to_string(pdata[kname].errors) + "\n";
 
-				std::string top = show_profiling_data(pdata, SORT_BY_FLOPS_DESC, prof_enabled, false, 1);
-				std::cout << os.str() + ", " + top + "" << std::endl;
+				results += os.str();
+				std::cout << os.str();
+
 			}
 
 		}
@@ -204,8 +198,9 @@ int main (int argc, char** argv) {
 
 		results += "\n\n results ( " + generic_name + "):\n";
 
-		std::string prof_results = show_profiling_data(pdata, SORT_BY_FLOPS_DESC, prof_enabled, true);
-		std::cout << prof_results << std::endl;
+		// std::string prof_results = show_profiling_data(pdata, SORT_BY_BANDW_DESC, prof_enabled, true);
+		std::string prof_results = show_profiling_data(pdata, SORT_BY_FLOPS, prof_enabled, true);
+		std::cout << ocl.getlog() + "\n:" + prof_results << std::endl;
 		write_to_file (results_fname, prof_results, true);
 
 		results += prof_results;

@@ -56,19 +56,20 @@ typedef enum profiling_type {OFF = 0, CPU_ONLY = 1, GPU_ONLY = 2, CPU_GPU = 3} p
 		} \
 	} while (0)
 
-typedef enum sort_method_type { NO_SORTING = 0, SORT_BY_TIME_DESC = 1, SORT_BY_FLOPS_DESC = 2, SORT_BY_NAME = 3, SORT_BY_NAME_DESC = 4, SORT_BY_CALLS_DESC = 5, SORT_BY_BANDW_DESC = 6} sort_method_type;
+typedef enum sort_method_type { NO_SORTING = 0, SORT_BY_TIME_DESC = 1, SORT_BY_FLOPS_DESC = 2, SORT_BY_NAME = 3, SORT_BY_NAME_DESC = 4, SORT_BY_CALLS_DESC = 5, SORT_BY_BANDW_DESC = 6, SORT_BY_BANDW = 7, SORT_BY_FLOPS = 8} sort_method_type;
 std::chrono::time_point<std::chrono::system_clock> start, end;
 
 class performance_counter {
 
-  public:
+public:
 
 	std::string key = "";
 	std::string description = "";
 
-	long double time = 0.0;
-	long double flops = 0.0;
-	long double bytes_in = 0.0;
+	// time in ms
+	long double time = 0.0; // sec
+	long double flops = 0.0; // gflops
+	long double bytes_in = 0.0; //gbytes
 	long double bytes_out = 0.0;
 	unsigned long long calls = 0L;
 	unsigned long long errors = 0L;
@@ -87,7 +88,7 @@ class performance_counter {
 		errors = 0L;
 	}
 
-	std::string show (const double global_time = 0.0, double total_cl_time = 0.0, unsigned long total_cl_flops_performed = 0L, unsigned long total_bytes_in = 0L,  unsigned long total_bytes_out = 0L, const int m = 7, const int n = 3) {
+	std::string show ( const int m = 7, const int n = 3) {
 
 		double cl_time_perc = 0;
 		double total_time_perc = 0;
@@ -97,29 +98,24 @@ class performance_counter {
 
 		std::string results = "";
 
-		if (!description.empty() ) results += description;
-		if (total_cl_time > 0.0) cl_time_perc = (100.0 * time) / total_cl_time;
-		if (global_time > 0.0) total_time_perc = (1e-7 * time) / global_time;
-		if (total_cl_flops_performed > 0) total_flops_perc = ( (100.0 * (long double) flops) / (long double) total_cl_flops_performed);
-		if (total_bytes_in > 0) total_bytes_in_perc = ( (100.0 * (long double) bytes_in) / (long double) total_bytes_in);
-		if (total_bytes_out > 0) total_bytes_out_perc = ( (100.0 * (long double) bytes_out) / (long double) total_bytes_out);
+		results += "err/total " + std::to_string(errors) + "/" + std::to_string(calls);
+		results += ", T = " + std::to_string(time) + " s";
+		results += ", t/call " + std::to_string((time * 1e3) / ((long double)calls)) + " ms";
 
-		results += string_format (", err/total %06d/%06d", errors, calls);
-		results += string_format (", T %3.3f s", time * 1e-9);
-		results += string_format (", t/call %3.3f ms", (1e-6 * time) / ((double)calls));
 
-		results += string_format (", GF/s %5.2f", ((double)(flops) / (double)(time * 1e-9)));
-		results += string_format (", GB/s %5.2f", ((double)bytes_in + (double)bytes_out) / (double)time);
-		results += string_format (", err %3.2f", ((double)errors / (double)calls));
+		long double GBs = (bytes_in + bytes_out) / time;
+		long double GFs = flops / time;
 
-		results += "\n";
+		results += " " + padstr(std::to_string(GBs) + " GB/s", 10) + " " + padstr(std::to_string(GFs) + " GF/s ", 10);
+		//results += string_format (", err %3.2f", ((long double)errors / (long double)calls));
+		//if (!description.empty() ) results += padstr(description, 20);
 
 		return results;
 	}
-
 };
 
-std::string show_profiling_data (Dict<performance_counter>& pdata, sort_method_type sort_method = SORT_BY_TIME_DESC, profiling_type ptype = OFF, bool reset_counters = true, size_t show_top_k = 0) {
+
+std::string show_profiling_data (Dict<performance_counter>& pdata, sort_method_type sort_method = SORT_BY_TIME_DESC, profiling_type ptype = OFF, bool reset_counters = true) {
 
 	unsigned long total_cl_flops_performed  = 0L;
 	unsigned long total_bytes_in  = 0L;
@@ -131,7 +127,7 @@ std::string show_profiling_data (Dict<performance_counter>& pdata, sort_method_t
 	double total_cl_time = 0.0;
 	end = std::chrono::system_clock::now();
 	double difference = (double) std::chrono::duration_cast<std::chrono::microseconds> (end - start).count() / (double) 1e6;
-	// out += std::string("T = ") + std::to_string(difference) + " s\n";
+	out += std::string("T = ") + std::to_string(difference) + " s\n";
 
 	//first pass
 	for (size_t i = 0; i < pdata.entries.size(); i ++) {
@@ -166,11 +162,7 @@ std::string show_profiling_data (Dict<performance_counter>& pdata, sort_method_t
 
 	case SORT_BY_FLOPS_DESC:
 		sorted_idxs = pdata.sorted_idxs ([&] (size_t i1, size_t i2) {
-			auto f1 = pdata.entries[i1].flops / pdata.entries[i1].time;
-			auto f2 = pdata.entries[i2].flops / pdata.entries[i2].time;
-			if (!isNaNInf (f1) && !isNaNInf (f2))
-				return f1 > f2;
-			else return false;
+			return pdata.entries[i1].flops / pdata.entries[i1].time > pdata.entries[i2].flops / pdata.entries[i2].time;
 		});
 		break;
 
@@ -178,11 +170,21 @@ std::string show_profiling_data (Dict<performance_counter>& pdata, sort_method_t
 		sorted_idxs = pdata.sorted_idxs ([&] (size_t i1, size_t i2) {
 			double B1 = pdata.entries[i1].bytes_in + pdata.entries[i1].bytes_out;
 			double B2 = pdata.entries[i2].bytes_in + pdata.entries[i2].bytes_out;
-			auto b1 = B1 / pdata.entries[i1].time;
-			auto b2 = B2 / pdata.entries[i2].time;
-			if (!isNaNInf (b1) && !isNaNInf (b2))
-				return b1 > b2;
-			else return false;
+			return B1 / pdata.entries[i1].time > B2 / pdata.entries[i2].time;
+		});
+		break;
+
+	case SORT_BY_FLOPS:
+		sorted_idxs = pdata.sorted_idxs ([&] (size_t i1, size_t i2) {
+			return pdata.entries[i1].flops / pdata.entries[i1].time < pdata.entries[i2].flops / pdata.entries[i2].time;
+		});
+		break;
+
+	case SORT_BY_BANDW:
+		sorted_idxs = pdata.sorted_idxs ([&] (size_t i1, size_t i2) {
+			double B1 = pdata.entries[i1].bytes_in + pdata.entries[i1].bytes_out;
+			double B2 = pdata.entries[i2].bytes_in + pdata.entries[i2].bytes_out;
+			return B1 / pdata.entries[i1].time < B2 / pdata.entries[i2].time;
 		});
 		break;
 
@@ -200,32 +202,21 @@ std::string show_profiling_data (Dict<performance_counter>& pdata, sort_method_t
 	}
 
 	//second pass
-	size_t entries_to_show = show_top_k == 0 ? pdata.entries.size() : show_top_k;
-
-	for (size_t i = 0; i < entries_to_show; i ++) {
+	for (size_t i = 0; i < pdata.entries.size(); i ++) {
 		if (ptype != OFF) {
-
-			out += pdata.reverse_namemap[ sorted_idxs[i] ];
-			if (show_top_k == 0) {
-
-				out += pdata.entries[ sorted_idxs[i] ].show (difference, total_cl_time, total_cl_flops_performed, total_bytes_in, total_bytes_out);
-			} else {
-
-				out += " " + string_format ("%7.5f GB/s", (double)((pdata.entries[ sorted_idxs[i] ].bytes_in + pdata.entries[ sorted_idxs[i] ].bytes_out)) / (double)(pdata.entries[ sorted_idxs[i] ].time)) + "\t" + string_format ("%7.5f GF/s", (double)((pdata.entries[ sorted_idxs[i] ].flops)) / (double)(pdata.entries[ sorted_idxs[i] ].time * 1e-9));
-			}
+			out += pdata.entries[ sorted_idxs[i] ].show () + " " + pdata.reverse_namemap[ sorted_idxs[i] ] + "\n";
 		}
 
 		if (reset_counters)
 			pdata.entries[ sorted_idxs[i] ].reset();
 	}
 
-	if (ptype != OFF && show_top_k == 0) {
+	if (ptype != OFF) {
 		out += "\n";
 		out +=  "Total profiled time: " + std::to_string(1e-9 * total_cl_time) + " s ( " + std::to_string ( (100.0 * (long double) (1e-9 * total_cl_time) / (long double) difference)) + " )\n";
-
-		out += "Total compute: " + std::to_string(1e-9 * ( (long double) total_cl_flops_performed / (long double) difference)) + " GF\n";
-		out += "Total in: " + std::to_string(1e-9 * ( (long double) total_bytes_in)) + " GB\n";
-		out += "Total out: " + std::to_string(1e-9 * ( (long double) total_bytes_out)) + " GB\n";
+		out += "Total compute: " + std::to_string(( (long double) total_cl_flops_performed / (long double) difference)) + " GF\n";
+		out += "Total in: " + std::to_string(( (long double) total_bytes_in)) + " GB\n";
+		out += "Total out: " + std::to_string(( (long double) total_bytes_out)) + " GB\n";
 		out += "Total kernel calls: " + std::to_string(total_calls) + "\n\n";
 	}
 

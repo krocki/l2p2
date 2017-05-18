@@ -2,13 +2,9 @@
 __attribute__((vec_type_hint($TV$)))
 #endif
 // N_L_W_G_S_I_TV H
-__kernel void k_gen_$N$_$L$_$W$_$G$_$S$_$I$_$TV$_$H$_cl_copy_gmem_v2 (
+__kernel void k_gen_$N$_$L$_$W$_$G$_$S$_$I$_$TV$_$H$_cl_copy_gmem_v3 (
     __global $TV$ * restrict out,
     __global const $TV$ * restrict in) {
-
-    #if $I$ > 0
-    int gid = get_global_id (0);
-    #endif
 
 	#if $I$ > 1
 	#pragma unroll $I$
@@ -16,11 +12,14 @@ __kernel void k_gen_$N$_$L$_$W$_$G$_$S$_$I$_$TV$_$H$_cl_copy_gmem_v2 (
 	#if $I$ > 1
 	for (int i = 0; i < $I$; i++) {
 	#endif
-	#if $I$ > 0
-		out[gid] = in[gid];
+	#if $I$ > 1
+		out[get_global_id (0) + i * $G$] = in[get_global_id (0) + i * $G$];
+	#elif $I$ > 0
+		out[get_global_id (0)] = in[get_global_id (0)];
+	#else
+		//nothing
 	#endif
 	#if $I$ > 1
-		gid += $G$;
 	}
 	#endif
 

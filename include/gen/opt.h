@@ -1,8 +1,8 @@
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-05-16 15:22:30
-* @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-16 16:15:54
+* @Last Modified by:   Kamil M Rocki
+* @Last Modified time: 2017-05-18 08:19:26
 */
 
 #include <gen/defs.h>
@@ -48,5 +48,10 @@ code_t remove_non_loops(code_t& input) {
 	return input;
 }
 
+//remove all the dirty stuff
+code_t prune_ifdefs() {
+
+
+}
 
 #endif

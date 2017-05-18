@@ -1,8 +1,8 @@
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-05-12 08:18:54
-* @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-16 14:03:04
+* @Last Modified by:   Kamil M Rocki
+* @Last Modified time: 2017-05-18 06:47:31
 */
 
 #include <string>
@@ -10,6 +10,7 @@
 #include <sstream>
 #include <iomanip> // set_w
 #include <utils/regex_utils.h>
+#include <stdarg.h> // var args
 
 #ifndef _STRING_OPS_H_
 #define _STRING_OPS_H_
@@ -154,6 +155,17 @@ std::string delUnnecessary (std::string& str) {
 	}
 
 	return str;
+}
+
+std::string padstr(std::string str, const size_t num = 10, const char padding_char = '_') {
+
+	std::string out = str;
+	// if (num > out.size())
+	// 	out.insert(0, num - out.size(), padding_char);
+	// if (num < out.size())
+	// 	return out.substr(0, num);
+
+	return out;
 }
 
 #endif

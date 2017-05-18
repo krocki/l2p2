@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-04 08:51:00
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-05-04 15:31:20
+* @Last Modified by:   Kamil M Rocki
+* @Last Modified time: 2017-05-18 11:30:45
 */
 
 /* Various helpers used for managing CL code compilation, etc... */
@@ -39,6 +39,8 @@ typedef struct {
 	cl_device_id    id;
 	cl_platform_id  platform;
 	cl_device_type  type;
+	std::string     type_str;
+	std::string     vendor_str;
 	std::string     device_string;
 	std::string     platform_string;
 	cl_uint         compute_units;
@@ -56,6 +58,7 @@ typedef struct {
 
 	std::string     name;
 	std::string     type;
+	std::string     vendor;
 	long : 32;      // padding
 	int             typeId;
 	std::string     subtype;
@@ -67,7 +70,7 @@ typedef struct {
 
 class clUtils {
 
-  public:
+public:
 
 	static std::vector <cl_dev_info> getAllDevices (cl_device_type dev_type = CL_DEVICE_TYPE_ALL);
 	static std::vector <compute_device_info> listDevices (cl_device_type dev_type = CL_DEVICE_TYPE_ALL);
@@ -173,6 +176,8 @@ cl_dev_info clUtils::getDevice (cl_device_id device) {
 
 	cl_dev_info     found_device;
 	char            device_string[BUFFER_STRING_LENGTH];
+	char            vs[BUFFER_STRING_LENGTH];
+	cl_device_type  t;
 	cl_uint         compute_units;
 	size_t          workgroup_size;
 	cl_ulong        global_mem_size;
@@ -181,6 +186,8 @@ cl_dev_info clUtils::getDevice (cl_device_id device) {
 	size_t			profiling_timer_resolution;
 
 	CL_SAFE_CALL (clGetDeviceInfo (device, CL_DEVICE_NAME, sizeof (device_string), &device_string, NULL) );
+	CL_SAFE_CALL (clGetDeviceInfo (device, CL_DEVICE_VENDOR, sizeof (vs), &vs, NULL) );
+	CL_SAFE_CALL (clGetDeviceInfo (device, CL_DEVICE_TYPE, sizeof (cl_device_type), &t, NULL) );
 	CL_SAFE_CALL (clGetDeviceInfo (device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof (compute_units), &compute_units, NULL) );
 	CL_SAFE_CALL (clGetDeviceInfo (device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof (workgroup_size), &workgroup_size, NULL) );
 	CL_SAFE_CALL (clGetDeviceInfo (device, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof (global_mem_size), &global_mem_size, NULL) );
@@ -189,7 +196,18 @@ cl_dev_info clUtils::getDevice (cl_device_id device) {
 	CL_SAFE_CALL (clGetDeviceInfo (device, CL_DEVICE_PROFILING_TIMER_RESOLUTION, sizeof(size_t), &profiling_timer_resolution, NULL) );
 
 	std::string temp = std::string (device_string);
+
 	found_device.device_string = delUnnecessary (temp);
+	found_device.type_str = (t == CL_DEVICE_TYPE_CPU ? std::string("CPU") : std::string("UNK"));
+	found_device.type_str = (t == CL_DEVICE_TYPE_GPU ? std::string("GPU") : found_device.type_str);
+	found_device.type_str = (t == CL_DEVICE_TYPE_ACCELERATOR ? std::string("ACC") : found_device.type_str);
+
+	temp = std::string(vs);
+	found_device.vendor_str = (temp == "AMD" || temp == "Advanced Micro Devices, Inc." || temp == "AuthenticAMD") ? "AMD" : temp;
+	found_device.vendor_str = (temp == "NVIDIA" || temp == "NVIDIA Corporation") ? "NVIDIA" : found_device.vendor_str;
+	found_device.vendor_str = (temp == "INTEL" || temp == "Intel" || temp == "GenuineIntel") ? "INTEL" : found_device.vendor_str;
+	found_device.vendor_str = (temp == "ARM") ? "ARM" : found_device.vendor_str;
+
 	found_device.compute_units = compute_units;
 	found_device.workgroup_size = (unsigned) workgroup_size;
 	found_device.global_mem_size = global_mem_size;
@@ -201,17 +219,26 @@ cl_dev_info clUtils::getDevice (cl_device_id device) {
 	CL_SAFE_CALL (clGetDeviceInfo (device, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof (found_device.workitem_size), &found_device.workitem_size, NULL) );
 	CL_SAFE_CALL (clGetDeviceInfo (device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof (found_device.workgroup_size), &found_device.workgroup_size, NULL) );
 
-	// Query for a specific type of device or brand
-	/*  bool IsCPU() const { return Type() == "CPU"; }
-	  bool IsGPU() const { return Type() == "GPU"; }
-	  bool IsAMD() const { return Vendor() == "AMD" || Vendor() == "Advanced Micro Devices, Inc." ||
-	                              Vendor() == "AuthenticAMD";; }
-	  bool IsNVIDIA() const { return Vendor() == "NVIDIA" || Vendor() == "NVIDIA Corporation"; }
-	  bool IsIntel() const { return Vendor() == "INTEL" || Vendor() == "Intel" ||
-	                                Vendor() == "GenuineIntel"; }
-	  bool IsARM() const { return Vendor() == "ARM"; }
-	  */
 	return found_device;
+}
+
+bool is_cpu(cl_dev_info& dinfo) {
+	return dinfo.type_str == "CPU";
+}
+bool is_gpu(cl_dev_info& dinfo) {
+	return dinfo.type_str == "GPU";
+}
+bool is_acc(cl_dev_info& dinfo) {
+	return dinfo.type_str == "ACC";
+}
+bool is_arm(cl_dev_info& dinfo) {
+	return dinfo.type_str == "ARM";
+}
+bool is_intel(cl_dev_info& dinfo) {
+	return dinfo.type_str == "INTEL";
+}
+bool is_nvidia(cl_dev_info& dinfo) {
+	return dinfo.type_str == "NVIDIA";
 }
 
 void clUtils::devInfo (cl_device_id device, int extended) {
@@ -486,7 +513,7 @@ int clUtils::checkError (const cl_int ciErrNum, const char* const operation) {
 	} else return 0;
 }
 
-void check_error (cl_int errcode, const char* msg, ...) {
+void check_error (cl_int &errcode, const char* msg, ...) {
 	if (errcode < 0) {
 		char formatted[1024];
 
@@ -499,9 +526,10 @@ void check_error (cl_int errcode, const char* msg, ...) {
 			vsprintf (formatted, msg, args);
 			va_end (args);
 			fprintf (stderr, "Error %d: %s\n", errcode, formatted);
+			errcode = 0;
 		}
 
-		exit (EXIT_FAILURE);
+		//exit (EXIT_FAILURE);
 	}
 }
 
@@ -537,9 +565,10 @@ cl_program clUtils::compileProgram (const char* const kernel_file, cl_context cx
 			clUtils::checkError (ciErrNum, "clGetProgramBuildInfo 2");
 			build_log[log_size] = '\0';
 			printf ("--- Build log extended kernel---\n ");
+			printf (" %s\n", kernel_file);
 			printf ("%s\n", build_log);
 			free (build_log);
-			exit (1);
+			//exit (1);
 		}
 	}
 
