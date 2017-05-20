@@ -178,7 +178,7 @@ int main (int argc, char** argv) {
 			//std::generate_n(rs.begin(), rs.size(), [] { static int i {1 << 14}; return i <<= 2; });
 			ws_x.resize(6);
 			ws_y = {1};
-			std::generate_n(ws_x.begin(), ws_x.size(), [] { static int i {ocl.current_device_properties.compute_units}; return i += ocl.current_device_properties.compute_units; });
+			std::generate_n(ws_x.begin(), ws_x.size(), [] { static int i {static_cast<int>(ocl.current_device_properties.compute_units)}; return i += ocl.current_device_properties.compute_units; });
 			ls_x = {32, 64, 128, 192, 256, 512, 1024};
 			ls_y = {1};
 			vs = {1, 2, 4, 8, 16};
