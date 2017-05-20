@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-14 20:55:55
 * @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-05-19 22:25:18
+* @Last Modified time: 2017-05-20 10:16:44
 */
 
 #include <iostream>
@@ -66,7 +66,9 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize_x = 1, int
 	std::string perf_key = op;
 
 	for (int i = 0; i < iters; i++) {
-		_CL_TIMED_CALL_(cl_config_string = exec_cl_2d (y, x, op, lsize_x, lsize_y, ngroups_x, ngroups_y, vecn, profile_cl), ocl, perf_key);
+
+		_CL_TIMED_CALL_(cl_config_string = exec_cl_2d (((i % 2 == 0) ? y : x), ((i % 2 == 0) ? x : y), op, lsize_x, lsize_y, ngroups_x, ngroups_y, vecn, profile_cl), ocl, perf_key);
+
 	}
 
 	// copy device data to host
@@ -123,7 +125,7 @@ int main (int argc, char** argv) {
 
 		} else {
 
-			printf("usage: progname <d> <t> <f> [outpath]\nexamples:\n\t./benchmark_bandwidth 1 \"cl_map_gmem_2d\" \"fmads\"\n\t./benchmark_bandwidth 4 \"cl_map_gmem_2d\" \"copy\"\n");
+			printf("usage: progname <d> <t> <f> [outpath] [iters]\nexamples:\n\t./benchmark_bandwidth 1 \"cl_map_gmem_2d\" \"fmads\"\n\t./benchmark_bandwidth 2 \"cl_map_gmem_2d\" \"copy\"\n\t./benchmark_bandwidth 4 \"cl_map_gmem_2d\" \"fmads\" \"../kernels/generated/src/\" 20\n");
 			return -1;
 
 		}
@@ -133,8 +135,8 @@ int main (int argc, char** argv) {
 
 		if (argc > 4) { outpath = std::string(argv[4]); }
 
-		int bench_iters = 50
-		if (argc > 5) { bench_iters = std::string(argv[5]);}
+		int bench_iters = 50;
+		if (argc > 5) { bench_iters = std::stoi(argv[5]); }
 
 
 		std::string debug_fname = "debug_" + generic_name + "_" + func_name + ".txt";
@@ -145,10 +147,10 @@ int main (int argc, char** argv) {
 		std::cout << "func name = " << func_name << "; ";
 		std::cout << "kernel outpath = " << outpath << "; ";
 		std::cout << "log = " << debug_fname << "; ";
-
+		std::cout << "# of samples = " << bench_iters << "; ";
 		init_cl(requested_device);
 
-		std::vector<int> rs(6);
+		std::vector<int> rs = {1 << 23};
 		std::vector<int> cs = {1};
 		std::vector<int> ls_x, ls_y;
 		std::vector<int> ws_x, ws_y;
@@ -162,11 +164,10 @@ int main (int argc, char** argv) {
 		if (is_cpu(ocl.current_device_properties)) {
 
 			std::cout << "CPU" << std::endl;
-			std::generate_n(rs.begin(), rs.size(), [] { static int i {1 << 10}; return i <<= 2; });
-			ws_x.resize(8);
+			//std::generate_n(rs.begin(), rs.size(), [] { static int i {1 << 22}; return i <<= 2; });
+			ws_x = {1, 2, 4, 8, 12, 16, 18, 32, 36, 54, 64, 72, 96, 108, 128, 144};
+			ls_x = {1, 2, 4, 8, 12, 16, 18, 32, 36, 54, 64, 72, 96, 108, 128, 144};
 			ws_y = {1};
-			std::generate_n(ws_x.begin(), ws_x.size(), [] { static int i {ocl.current_device_properties.compute_units / 2}; return i += ocl.current_device_properties.compute_units / 2;});
-			ls_x = {1, 2, 4, 8, 16, 32, 64, 128, 192, 256, 512, 1024};
 			ls_y = {1};
 			vs = {1, 2, 4, 8, 16};
 			kk_iters = 128;
@@ -174,10 +175,10 @@ int main (int argc, char** argv) {
 		} else {
 
 			std::cout << "GPU" << std::endl;
-			std::generate_n(rs.begin(), rs.size(), [] { static int i {1 << 10}; return i <<= 2; });
-			ws_x.resize(8);
+			//std::generate_n(rs.begin(), rs.size(), [] { static int i {1 << 14}; return i <<= 2; });
+			ws_x.resize(6);
 			ws_y = {1};
-			std::generate_n(ws_x.begin(), ws_x.size(), [] { static int i {ocl.current_device_properties.compute_units / 2}; return i += ocl.current_device_properties.compute_units / 2; });
+			std::generate_n(ws_x.begin(), ws_x.size(), [] { static int i {ocl.current_device_properties.compute_units}; return i += ocl.current_device_properties.compute_units; });
 			ls_x = {32, 64, 128, 192, 256, 512, 1024};
 			ls_y = {1};
 			vs = {1, 2, 4, 8, 16};
