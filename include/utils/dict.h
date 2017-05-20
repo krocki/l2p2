@@ -31,7 +31,7 @@
 template <typename T>
 class Dict {
 
-  public:
+public:
 
 	std::vector<T> entries;
 	std::string name;

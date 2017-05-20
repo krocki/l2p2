@@ -2,11 +2,12 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-14 20:55:55
 * @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-05-18 12:50:08
+* @Last Modified time: 2017-05-19 22:25:18
 */
 
 #include <iostream>
 #include <utils/ansi_colors.h>
+
 #include <random>
 
 #include <array/eigen.h>
@@ -39,7 +40,7 @@ int init_cl(int dev) {
 }
 
 template<class T>
-int run_benchmark(size_t rows, size_t cols, std::string op, int lsize = 1, int ngroups = 1, int vecn = 1) {
+int run_benchmark(size_t rows, size_t cols, std::string op, int lsize_x = 1, int lsize_y = 1, int ngroups_x = 1, int ngroups_y = 1, int vecn = 1, int iters = 1) {
 
 	array_t<T> ref(rows, cols);
 	ref.setRandom();
@@ -48,7 +49,7 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize = 1, int n
 	// std::cout << ref << std::endl;
 
 	// make an opencl copy of the eigen array
-	size_t padding = lsize * ngroups * vecn;
+	size_t padding = lsize_x * ngroups_x * lsize_y * ngroups_y * vecn;
 	//std::cout << "padding: " << lsize << ", " << ngroups << ", " << vecn << ", = " << padding << std::endl;
 
 	cl_array<T> x = cl_array<T> (&ocl, ref, padding);
@@ -64,7 +65,9 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize = 1, int n
 
 	std::string perf_key = op;
 
-	_CL_TIMED_CALL_(cl_config_string = exec_cl (y, x, op, lsize, ngroups, vecn, profile_cl), ocl, perf_key);
+	for (int i = 0; i < iters; i++) {
+		_CL_TIMED_CALL_(cl_config_string = exec_cl_2d (y, x, op, lsize_x, lsize_y, ngroups_x, ngroups_y, vecn, profile_cl), ocl, perf_key);
+	}
 
 	// copy device data to host
 	y.sync_host();
@@ -109,49 +112,80 @@ int main (int argc, char** argv) {
 	try {
 
 		start = std::chrono::system_clock::now();
+		std::string generic_name, func_name;
+		int requested_device;
 
-		std::string generic_name = "cl_copy_gmem";
-		std::string generic_name2 = "cl_copy_gmem_v2";
-		std::string generic_name3 = "cl_copy_gmem_v3";
-		std::vector<std::string> gen_list = {generic_name, generic_name2, generic_name3};
+		if (argc > 3) {
 
+			requested_device = atoi (argv[1]);
+			generic_name = std::string(argv[2]);
+			func_name = std::string(argv[3]);
+
+		} else {
+
+			printf("usage: progname <d> <t> <f> [outpath]\nexamples:\n\t./benchmark_bandwidth 1 \"cl_map_gmem_2d\" \"fmads\"\n\t./benchmark_bandwidth 4 \"cl_map_gmem_2d\" \"copy\"\n");
+			return -1;
+
+		}
+
+		std::vector<std::string> gen_list = {generic_name};
 		std::string outpath = "../kernels/generated/src/";
-		std::string debug_fname = "debug_" + generic_name + ".txt";
-		std::string results_fname = "bench_" + generic_name + ".txt";
 
-		int requested_device = 0;
-		if (argc > 1) requested_device = atoi (argv[1]);
+		if (argc > 4) { outpath = std::string(argv[4]); }
+
+		int bench_iters = 50
+		if (argc > 5) { bench_iters = std::string(argv[5]);}
+
+
+		std::string debug_fname = "debug_" + generic_name + "_" + func_name + ".txt";
+		std::string results_fname = "bench_" + generic_name + "_" + func_name + ".txt";
+
+		std::cout << "device = " << requested_device << "; ";
+		std::cout << "generic name = " << generic_name << "; ";
+		std::cout << "func name = " << func_name << "; ";
+		std::cout << "kernel outpath = " << outpath << "; ";
+		std::cout << "log = " << debug_fname << "; ";
+
 		init_cl(requested_device);
 
-		std::vector<int> rs(3);
+		std::vector<int> rs(6);
 		std::vector<int> cs = {1};
-		std::vector<int> ls = {};
-		std::vector<int> ws;
+		std::vector<int> ls_x, ls_y;
+		std::vector<int> ws_x, ws_y;
 		std::vector<int> vs = {};
 		std::vector<int> hs = {0, 1}; //__attribute__((vec_type_hint(T)))
+		std::vector<int> us = {0, 1};
+		int kk_iters;
 
-		std::cout << ocl.current_device_properties.device_string + "\n";
+		std::cout << ocl.current_device_properties.device_string + " ";
 
 		if (is_cpu(ocl.current_device_properties)) {
 
 			std::cout << "CPU" << std::endl;
-			std::generate_n(rs.begin(), rs.size(), [] { static int i {1 << 12}; return i <<= 4; });
-			ls = {1, 2, 4, 8, 16, 18, 32, 36, 72};
-			ws = {1, 2, 4, 8, 16, 18, 32, 36, 72};
+			std::generate_n(rs.begin(), rs.size(), [] { static int i {1 << 10}; return i <<= 2; });
+			ws_x.resize(8);
+			ws_y = {1};
+			std::generate_n(ws_x.begin(), ws_x.size(), [] { static int i {ocl.current_device_properties.compute_units / 2}; return i += ocl.current_device_properties.compute_units / 2;});
+			ls_x = {1, 2, 4, 8, 16, 32, 64, 128, 192, 256, 512, 1024};
+			ls_y = {1};
 			vs = {1, 2, 4, 8, 16};
+			kk_iters = 128;
 
 		} else {
 
 			std::cout << "GPU" << std::endl;
-			std::generate_n(rs.begin(), rs.size(), [] { static int i {1 << 12}; return i <<= 4; });
-			ws.resize(10);
-			std::generate_n(ws.begin(), ws.size(), [] { static int i {ocl.current_device_properties.compute_units}; return i += ocl.current_device_properties.compute_units; });
-			ls = {16, 32, 64, 128, 256, 512, 1024};
+			std::generate_n(rs.begin(), rs.size(), [] { static int i {1 << 10}; return i <<= 2; });
+			ws_x.resize(8);
+			ws_y = {1};
+			std::generate_n(ws_x.begin(), ws_x.size(), [] { static int i {ocl.current_device_properties.compute_units / 2}; return i += ocl.current_device_properties.compute_units / 2; });
+			ls_x = {32, 64, 128, 192, 256, 512, 1024};
+			ls_y = {1};
 			vs = {1, 2, 4, 8, 16};
+			kk_iters = 128;
 
 		}
 
-		auto configurations = generate_configurations(RANDOM_SHUFFLE, rs, cs, ls, ws, vs, hs);
+		auto configurations = generate_configurations(RANDOM_SHUFFLE, rs, cs, ls_x, ls_y, ws_x, ws_y, vs, hs, us);
 
 		long double top_gb = 0;
 		std::string conf_str_gb = "";
@@ -169,34 +203,42 @@ int main (int argc, char** argv) {
 			std::string t = "float";
 			int r = std::get<0>(config);
 			int c = std::get<1>(config);
-			int l = std::get<2>(config);
-			int w = std::get<3>(config);
-			int v = std::get<4>(config);
-			int h = std::get<5>(config);
-			int g = l * w;
+			int lx = std::get<2>(config);
+			int ly = std::get<3>(config);
+			int wx = std::get<4>(config);
+			int wy = std::get<5>(config);
+			int v = std::get<6>(config);
+			int h = std::get<7>(config);
+			int u = std::get<8>(config);
+			int g = lx * wx * ly * wy;
 			int n = round_up_multiple(r * c, g * v); // round up to the nearest multiple of a block of threads
 			assert (n % (g * v) == 0);
 
 			int iters = n / (g * v); // need exactly iters iterations
+			// new
+			wy = iters;
 
-			Dict<var_t> values;
+			Dict<var_t> values, f_values;
 			values["$N$"] = std::to_string(n);
 			assert (n % v == 0);
 			values["$S$"] = std::to_string(n / v);
 			values["$H$"] = std::to_string(h);
-			values["$L$"] = std::to_string(l);
+			values["$LX$"] = std::to_string(lx);
+			values["$LY$"] = std::to_string(ly);
 			values["$G$"] = std::to_string(g);
-			values["$W$"] = std::to_string(w);
-			values["$I$"] = std::to_string(iters);
+			values["$WX$"] = std::to_string(wx);
+			values["$WY$"] = std::to_string(wy);
+			values["$TRANS$"] = std::to_string(u);
 			values["$T$"] = t;
+
 			values["$V$"] = std::to_string(v);
 			values["$TV$"] = t + (v > 1 ? std::to_string(v) : "");
-
-			// std::cout << "N " << n << std::endl;
-			// std::cout << "L " << l << std::endl;
-			// std::cout << "G " << g << std::endl;
-			// std::cout << "W " << w << std::endl;
-			// std::cout << "I " << iters << std::endl;
+			f_values["$OUT$"] = "out[gid]";
+			f_values["$IN$"] = "in[gid]";
+			f_values["$TV$"] = values["$TV$"];
+			f_values["$KK$"] = std::to_string(kk_iters);
+			values["$FUNCNAME$"] = func_name;
+			values["$FUNC$"] = make_tt ("functions/" + func_name, f_values);
 
 			for (auto& i : gen_list) {
 
@@ -206,32 +248,33 @@ int main (int argc, char** argv) {
 				std::regex kname_re ("k_gen_.*?" + i);
 				std::vector<pair_str_int> matches = find_pattern(k_code, kname_re);
 				std::string kname = matches.size() > 0 ? matches[0].first : i;
+				kname += "_" + func_name;
 				std::string fname = outpath + kname + ".cl";
 
 				write_to_file (fname, k_code, true);
 
-				//std::cout << "generated \"" + i + "\" :\n>>>>>>>>>>>>>>>\n" + k_code + "\n<<<<<<<<<<<<<<<\nwritten to: " + fname + "\n";
+				// std::cout << "generated \"" + i + "\" :\n>>>>>>>>>>>>>>>\n" + k_code + "\n<<<<<<<<<<<<<<<\nwritten to: " + fname + "\n";
 
-				ocl.add_program(i, fname);
-				ocl.add_kernel (kname, i);
+				ocl.add_program(kname, fname);
+				ocl.add_kernel (kname, kname);
 				ocl.kernels[kname].bytes_in = (long double)(r * c * sizeof(float)) / (long double)(1 << 30);
 				ocl.kernels[kname].bytes_out = (long double)(r * c * sizeof(float))  / (long double)(1 << 30);
-				ocl.kernels[kname].flops = 0;
+				int FLOPS_PER_THREAD = 8 * kk_iters;
+				ocl.kernels[kname].flops = (long double)(r * c * (long double)FLOPS_PER_THREAD)  / (long double)(1 << 30);
 
 				ocl.err = 0;
 
-				run_benchmark<float>(r, c, kname, l, w, v);
+				run_benchmark<float>(r, c, kname, lx, ly, wx, wy, v, bench_iters);
 
 				std::ostringstream os;
 
 				long double GBs = (pdata[kname].bytes_in + pdata[kname].bytes_out) / (pdata[kname].time);
 				long double GFs = (pdata[kname].flops) / (pdata[kname].time);
 
-				if (GBs > top_gb) { top_gb = GBs; conf_str_gb = "r " + std::to_string(r) + " c " + std::to_string(c) + " r*c " + std::to_string(r * c) + " n " + std::to_string(n) + " l " + std::to_string(l) + " c " + std::to_string(c) + " v " + std::to_string(v ) + " w " + std::to_string(w)  + " h " + std::to_string(h) + " " + i;}
-				if (GFs > top_gf) { top_gf = GFs; conf_str_gf = " r " + std::to_string(r) + " c " + std::to_string(c) + " r*c " + std::to_string(r * c) + " n " + std::to_string(n) + " l " + std::to_string(l) + " c " + std::to_string(c) + " v " + std::to_string(v) + " w " + std::to_string(w) + " h " + std::to_string(h) + " " + i;}
-				os << std::setw(10) << ++count << "/"  << configurations.size() * gen_list.size() << ": " << std::setw(25) << config << "\t" << std::setw(20) << std::to_string(GBs) << " GB/s";
-				//os << std::to_string(GFs) + " GF/s" + "\t";
-				os << std::setw(20) << "\terr: " + std::to_string(pdata[kname].errors) + "\t#1 GB/s = " + std::to_string(top_gb) + "\t" + conf_str_gb + "\n";
+				if (GBs > top_gb) { top_gb = GBs; conf_str_gb = i + std::string("  ") + pretty_print(config);}
+				if (GFs > top_gf) { top_gf = GFs; conf_str_gf = i + std::string("  ") + pretty_print(config);}
+
+				os << std::setw(5) << std::to_string(++count) << "/" + std::to_string(configurations.size() * gen_list.size()) << "   " << pretty_print(config) << std::setw(20) << centered(to_string_with_precision (GBs, 8, 2) + " GB/s ") << std::setw(10) << centered(to_string_with_precision (GFs, 8, 2) + " GF/s ") << " ERR " << std::setw(15) << centered(std::to_string(total_errors)) << " " << std::setw(20) << "#1 GB/s = " << std::setw(15) << to_string_with_precision (top_gb, 8, 2)  + " (" + conf_str_gb + ")" << std::setw(20) << "  #1 GF/s = "  << std::setw(10) << to_string_with_precision (top_gf, 8, 2) + " (" + conf_str_gf + ")" << "\n";
 
 				results += os.str();
 				std::cout << os.str();

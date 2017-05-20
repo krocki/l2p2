@@ -1,0 +1,17 @@
+#if $H$ > 0
+__attribute__((vec_type_hint($TV$)))
+#endif
+// N_LX_LY_WX_WY_G_TV H_TRANS
+__kernel void k_gen_$N$_$LX$_$LY$_$WX$_$WY$_$G$_$TV$_$H$_$TRANS$_cl_map_gmem_2d_$FUNCNAME$ (
+    __global $TV$ * restrict out,
+    __global const $TV$ * restrict in) {
+
+	#if $TRANS$
+		int gid = get_global_id(1) * get_global_size(0) + get_global_id(0);
+	#else
+		int gid = get_global_id(0) * get_global_size(1) + get_global_id(1);
+	#endif
+
+		$FUNC$
+
+}

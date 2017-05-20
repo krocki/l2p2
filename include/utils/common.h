@@ -95,6 +95,42 @@ std::string return_current_time_and_date (const char* format = "%x %X") {
 	return ss.str();
 }
 
+//formatting a table
+template<typename charT, typename traits = std::char_traits<charT> >
+class center_helper {
+	std::basic_string<charT, traits> str_;
+public:
+	center_helper(std::basic_string<charT, traits> str) : str_(str) {}
+	template<typename a, typename b>
+	friend std::basic_ostream<a, b>& operator<<(std::basic_ostream<a, b>& s, const center_helper<a, b>& c);
+};
+
+template<typename charT, typename traits = std::char_traits<charT> >
+center_helper<charT, traits> centered(std::basic_string<charT, traits> str) {
+	return center_helper<charT, traits>(str);
+}
+
+// redeclare for std::string directly so we can support anything that implicitly converts to std::string
+center_helper<std::string::value_type, std::string::traits_type> centered(const std::string& str) {
+	return center_helper<std::string::value_type, std::string::traits_type>(str);
+}
+
+template<typename charT, typename traits>
+std::basic_ostream<charT, traits>& operator<<(std::basic_ostream<charT, traits>& s, const center_helper<charT, traits>& c) {
+	std::streamsize w = s.width();
+	if (w > c.str_.length()) {
+		std::streamsize left = (w + c.str_.length()) / 2;
+		s.width(left);
+		s << c.str_;
+		s.width(w - left);
+		s << "";
+	} else {
+		s << c.str_;
+	}
+	return s;
+}
+
+
 //for printing tuple contents
 namespace aux {
 template<std::size_t...> struct seq {};
@@ -108,16 +144,26 @@ struct gen_seq<0, Is...> : seq<Is...> {};
 template<class Ch, class Tr, class Tuple, std::size_t... Is>
 void print_tuple(std::basic_ostream<Ch, Tr>& os, Tuple const& t, seq<Is...>) {
 	using swallow = int[];
-	(void)swallow{0, (void(os << (Is == 0 ? "" : ", ") << std::get<Is>(t)), 0)...};
+	(void)swallow{0, (void(os << std::setw(8) << std::get<Is>(t) ), 0)...};
 }
 } // aux::
 
 template<class Ch, class Tr, class... Args>
 auto operator<<(std::basic_ostream<Ch, Tr>& os, std::tuple<Args...> const& t)
 -> std::basic_ostream<Ch, Tr>& {
+
 	os << "{";
 	aux::print_tuple(os, t, aux::gen_seq<sizeof...(Args)>());
-	return os << "}\t";
+	return os << "}";
+}
+
+
+template<typename... Ts, size_t I = 1>
+std::string pretty_print(std::tuple<Ts...> const& a) {
+
+	std::ostringstream stream;
+	stream << a;
+	return stream.str();
 }
 
 template<typename... Ts, size_t I = 1>
@@ -127,11 +173,8 @@ std::string pretty_print(std::vector<std::tuple<Ts...>> const& res) {
 	std::string out = "";
 
 	for (auto& a : res) {
-		//TODO:
-		std::ostringstream stream;
-		stream << a;
 
-		out += std::to_string((++count)) + std::string(":\t") + stream.str() + std::string("\n");
+		out += pretty_print(a) + std::string("\n");
 	}
 
 	return out;

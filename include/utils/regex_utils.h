@@ -1,8 +1,8 @@
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-05-16 13:48:55
-* @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-16 14:03:21
+* @Last Modified by:   Kamil M Rocki
+* @Last Modified time: 2017-05-19 22:01:48
 */
 
 #include <regex>

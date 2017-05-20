@@ -1,8 +1,8 @@
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-05-11 11:49:22
-* @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-16 16:18:47
+* @Last Modified by:   Kamil M Rocki
+* @Last Modified time: 2017-05-19 22:02:22
 */
 
 #include <utils/string.h>
@@ -116,9 +116,8 @@ code_t process_tt(code_t& input, Dict<var_t>& values, bool debug = false) {
 	output += "\n\n process_tt in:\n";
 	output += input + "\n";
 
-	code_t newline_string = "####newline!!!!";
-	std::string sanitized_input = subst(input, "\n", newline_string);
-	output += " sanitized:\n" + sanitized_input + "\n";
+	std::string sanitized_input = input;// = subst(input, "\n", NEWLINE_STR);
+	// output += " sanitized:\n" + sanitized_input + "\n";
 
 	//find vars for substitution
 	std::regex t_regex("\\$.*?\\$");
@@ -133,10 +132,10 @@ code_t process_tt(code_t& input, Dict<var_t>& values, bool debug = false) {
 	final_str = process_vars(final_str, find_pattern(final_str, e_regex), eval_expr, values, debug);
 
 	output += " processed pre:\n" + processed_input + "\n";
-	processed_input = subst(processed_input, newline_string, "\n");
+	//processed_input = subst(processed_input, NEWLINE_STR, "\n");
 	output += " processed post:\n" + processed_input + "\n\n";
 	output += "final pre:\n" + final_str + "\n";
-	final_str = subst(final_str, newline_string, "\n");
+	//final_str = subst(final_str, NEWLINE_STR, "\n");
 
 	if (debug)
 		output += "\n\n\n/* final post:\n/*" + final_str + "\n";

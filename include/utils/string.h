@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-12 08:18:54
 * @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-05-18 06:47:31
+* @Last Modified time: 2017-05-19 22:01:54
 */
 
 #include <string>
@@ -82,7 +82,7 @@ std::vector<std::string> split (std::string in) {
 template <typename T>
 std::string to_string_with_precision (const T a_value, const int m = 12, const int n = 5) {
 	std::ostringstream out;
-	out << std::fixed << std::setw (m) << std::setprecision (n) << std::setfill ('_') << a_value;
+	out << std::fixed << std::setw (m) << std::setprecision (n) << std::setfill (' ') << a_value;
 	return out.str();
 }
 
@@ -167,5 +167,6 @@ std::string padstr(std::string str, const size_t num = 10, const char padding_ch
 
 	return out;
 }
+
 
 #endif
