@@ -125,7 +125,7 @@ int main (int argc, char** argv) {
 
 		} else {
 
-			printf("usage: progname <d> <t> <f> [outpath] [iters]\nexamples:\n\t./benchmark_bandwidth 1 \"cl_map_gmem_2d\" \"fmads\"\n\t./benchmark_bandwidth 2 \"cl_map_gmem_2d\" \"copy\"\n\t./benchmark_bandwidth 4 \"cl_map_gmem_2d\" \"fmads\" \"../kernels/generated/src/\" 20\n");
+			printf("usage: %s <d> <t> <f> [outpath] [iters]\nexamples:\n\t./benchmark_bandwidth 1 \"cl_map_gmem_2d\" \"fmads\"\n\t./benchmark_bandwidth 2 \"cl_map_gmem_2d\" \"copy\"\n\t./benchmark_bandwidth 4 \"cl_map_gmem_2d\" \"fmads\" \"../kernels/generated/src/\" 20\n", argv[0]);
 			return -1;
 
 		}
@@ -150,7 +150,7 @@ int main (int argc, char** argv) {
 		std::cout << "# of samples = " << bench_iters << "; ";
 		init_cl(requested_device);
 
-		std::vector<int> rs = {1 << 23};
+		std::vector<int> rs = {1 << 20};
 		std::vector<int> cs = {1};
 		std::vector<int> ls_x, ls_y;
 		std::vector<int> ws_x, ws_y;
@@ -165,8 +165,8 @@ int main (int argc, char** argv) {
 
 			std::cout << "CPU" << std::endl;
 			//std::generate_n(rs.begin(), rs.size(), [] { static int i {1 << 22}; return i <<= 2; });
-			ws_x = {1, 2, 4, 8, 12, 16, 18, 32, 36, 54, 64, 72, 96, 108, 128, 144};
-			ls_x = {1, 2, 4, 8, 12, 16, 18, 32, 36, 54, 64, 72, 96, 108, 128, 144};
+			ws_x = {1, 2, 4, 8};
+			ls_x = {1, 2, 4, 8};
 			ws_y = {1};
 			ls_y = {1};
 			vs = {1, 2, 4, 8, 16};
@@ -179,7 +179,7 @@ int main (int argc, char** argv) {
 			ws_x.resize(6);
 			ws_y = {1};
 			std::generate_n(ws_x.begin(), ws_x.size(), [] { static int i {static_cast<int>(ocl.current_device_properties.compute_units)}; return i += ocl.current_device_properties.compute_units; });
-			ls_x = {32, 64, 128, 192, 256, 512, 1024};
+			ls_x = {32, 64, 128};
 			ls_y = {1};
 			vs = {1, 2, 4, 8, 16};
 			kk_iters = 128;

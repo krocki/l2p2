@@ -1,27 +1,19 @@
-#if __clang__
-typedef float float16 __attribute__((ext_vector_type(16)));
-typedef float float8 __attribute__((ext_vector_type(8)));
-typedef float float4 __attribute__((ext_vector_type(4)));
-typedef float float2 __attribute__((ext_vector_type(2)));
+#if 0 > 0
+__attribute__((vec_type_hint(float4)))
 #endif
 
-#if $H$ > 0
-__attribute__((vec_type_hint($TV$)))
-#endif
-
-//__attribute__((opencl_unroll_hint(2)))
 // N_LX_LY_WX_WY_G_TV H_TRANS
-__kernel void k_gen_$N$_$LX$_$LY$_$WX$_$WY$_$G$_$TV$_$H$_$TRANS$_cl_map_gmem_2d_$FUNCNAME$ (
-    __global $TV$ * restrict out,
-    __global const $TV$ * restrict in) {
+__kernel void k_gen_1048576_1_1_4_65536_4_float4_0_1_cl_map_gmem_2d_copy (
+    __global float4 * restrict out,
+    __global const float4 * restrict in) {
 
-	#if $TRANS$
+	#if 1
 		int gid = get_global_id(1) * get_global_size(0) + get_global_id(0);
 	#else
 		int gid = get_global_id(0) * get_global_size(1) + get_global_id(1);
 	#endif
 
-		$FUNC$
+		out[gid] = in[gid];
 
 }
 

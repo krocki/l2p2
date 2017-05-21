@@ -1,0 +1,86 @@
+#if __clang__
+typedef float float16 __attribute__((ext_vector_type(16)));
+typedef float float8 __attribute__((ext_vector_type(8)));
+typedef float float4 __attribute__((ext_vector_type(4)));
+typedef float float2 __attribute__((ext_vector_type(2)));
+#if $H$ > 0
+__attribute__((vec_type_hint($TV$)))
+#endif
+#endif
+
+// N_LX_LY_WX_WY_G_TV H_TRANS
+void k_gen_$N$_$LX$_$LY$_$WX$_$WY$_$G$_$TV$_$H$_$TRANS$_c_map_gmem_2d_$FUNCNAME$ (
+    $TV$ * restrict out, const $TV$ * restrict in) {
+
+		//a simple for loop for now, for all threads
+	__attribute__((opencl_unroll_hint(2)))
+		for (int gid = 0; gid < $G$ * $WY$; gid++) {
+
+			$FUNC$
+		
+		}
+
+}
+
+/* 
+#if __clang__
+typedef float float16 __attribute__((ext_vector_type(16)));
+typedef float float8 __attribute__((ext_vector_type(8)));
+typedef float float4 __attribute__((ext_vector_type(4)));
+typedef float float2 __attribute__((ext_vector_type(2)));
+#if $H$ > 0
+__attribute__((vec_type_hint($TV$)))
+#endif
+#endif
+
+// N_LX_LY_WX_WY_G_TV H_TRANS
+__kernel void k_gen_1048576_1_1_4_65536_4_float4_0_1_c_map_gmem_2d_copy (
+    __global float4 * restrict out,
+    __global const float4 * restrict in) {
+
+		//a simple for loop for now, for all threads, G * WY * veclength floats
+		for (int gid = 0; gid < 65536 * 4; gid++) {
+
+			out[gid] = in[gid];
+
+		}
+
+}
+*/
+
+/*
+llvm output:
+; ModuleID = 'k_gen_1048576_1_1_4_65536_4_float4_0_1_c_map_gmem_2d_copy.c'
+target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
+target triple = "x86_64-apple-macosx10.10.0"
+
+; Function Attrs: nounwind ssp uwtable
+define void @k_gen_1048576_1_1_4_65536_4_float4_0_1_c_map_gmem_2d_copy(<4 x float>* noalias nocapture %out, <4 x float>* noalias nocapture readonly %in) #0 {
+  %out2 = bitcast <4 x float>* %out to i8*
+  %in3 = bitcast <4 x float>* %in to i8*
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %out2, i8* %in3, i64 4194304, i32 16, i1 false)
+  ret void
+}
+
+; Function Attrs: nounwind
+declare void @llvm.memcpy.p0i8.p0i8.i64(i8* nocapture, i8* nocapture readonly, i64, i32, i1) #1
+
+attributes #0 = { nounwind ssp uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "target-features"="+ssse3,+cx16,+sse,+sse2,+sse3" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #1 = { nounwind }
+
+!opencl.kernels = !{!0}
+!llvm.module.flags = !{!6}
+!llvm.ident = !{!7}
+
+!0 = !{void (<4 x float>*, <4 x float>*)* @k_gen_1048576_1_1_4_65536_4_float4_0_1_c_map_gmem_2d_copy, !1, !2, !3, !4, !5}
+!1 = !{!"kernel_arg_addr_space", i32 0, i32 0}
+!2 = !{!"kernel_arg_access_qual", !"none", !"none"}
+!3 = !{!"kernel_arg_type", !"float4*", !"float4*"}
+!4 = !{!"kernel_arg_base_type", !"float __attribute__((ext_vector_type(4)))*", !"float __attribute__((ext_vector_type(4)))*"}
+!5 = !{!"kernel_arg_type_qual", !"restrict", !"restrict const"}
+!6 = !{i32 1, !"PIC Level", i32 2}
+!7 = !{!"Apple LLVM version 7.0.2 (clang-700.1.81)"}
+
+
+
+*/

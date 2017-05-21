@@ -117,9 +117,9 @@ public:
 
 std::string show_profiling_data (Dict<performance_counter>& pdata, sort_method_type sort_method = SORT_BY_TIME_DESC, profiling_type ptype = OFF, bool reset_counters = true) {
 
-	unsigned long total_cl_flops_performed  = 0L;
-	unsigned long total_bytes_in  = 0L;
-	unsigned long total_bytes_out  = 0L;
+	long double total_cl_flops_performed  = 0L;
+	long double total_bytes_in  = 0L;
+	long double total_bytes_out  = 0L;
 	unsigned long total_calls  = 0L;
 
 	std::string out = "";
@@ -214,7 +214,7 @@ std::string show_profiling_data (Dict<performance_counter>& pdata, sort_method_t
 	if (ptype != OFF) {
 		out += "\n";
 		out +=  "Total profiled time: " + std::to_string(1e-9 * total_cl_time) + " s ( " + std::to_string ( (100.0 * (long double) (1e-9 * total_cl_time) / (long double) difference)) + " )\n";
-		out += "Total compute: " + std::to_string(( (long double) total_cl_flops_performed / (long double) difference)) + " GF\n";
+		out += "Total compute: " + std::to_string( (long double) total_cl_flops_performed) + " GFlops\n";
 		out += "Total in: " + std::to_string(( (long double) total_bytes_in)) + " GB\n";
 		out += "Total out: " + std::to_string(( (long double) total_bytes_out)) + " GB\n";
 		out += "Total kernel calls: " + std::to_string(total_calls) + "\n\n";
