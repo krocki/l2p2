@@ -1,15 +1,6 @@
-#if __clang__
-typedef float float16 __attribute__((ext_vector_type(16)));
-typedef float float8 __attribute__((ext_vector_type(8)));
-typedef float float4 __attribute__((ext_vector_type(4)));
-typedef float float2 __attribute__((ext_vector_type(2)));
-#endif
-
 #if $H$ > 0
 __attribute__((vec_type_hint($TV$)))
 #endif
-
-//__attribute__((opencl_unroll_hint(2)))
 // N_LX_LY_WX_WY_G_TV H_TRANS
 __kernel void k_gen_$N$_$LX$_$LY$_$WX$_$WY$_$G$_$TV$_$H$_$TRANS$_cl_map_gmem_2d_$FUNCNAME$ (
     __global $TV$ * restrict out,
@@ -21,7 +12,7 @@ __kernel void k_gen_$N$_$LX$_$LY$_$WX$_$WY$_$G$_$TV$_$H$_$TRANS$_cl_map_gmem_2d_
 		int gid = get_global_id(0) * get_global_size(1) + get_global_id(1);
 	#endif
 
-		$FUNC$
+$FUNC$
 
 }
 

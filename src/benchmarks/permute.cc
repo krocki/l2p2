@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-14 20:55:55
 * @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-05-20 21:58:13
+* @Last Modified time: 2017-05-20 22:10:18
 */
 
 #include <iostream>
@@ -43,22 +43,27 @@ template<class T>
 int run_benchmark(size_t rows, size_t cols, std::string op, int lsize_x = 1, int lsize_y = 1, int ngroups_x = 1, int ngroups_y = 1, int vecn = 1, int iters = 1) {
 
 	array_t<T> ref(rows, cols);
-	ref.setRandom();
+	array_t<int> h_idxs(rows, cols);
 
-	// std::cout << "ref:" << std::endl;
-	// std::cout << ref << std::endl;
+	std::default_random_engine generator;
+	std::uniform_int_distribution<int> distribution(0, lsize_x * ngroups_x * lsize_y * ngroups_y);
+
+	ref.setRandom();
+	h_idxs = h_idxs.unaryExpr([&](auto) { return distribution(generator); });
 
 	// make an opencl copy of the eigen array
 	size_t padding = lsize_x * ngroups_x * lsize_y * ngroups_y * vecn;
 	//std::cout << "padding: " << lsize << ", " << ngroups << ", " << vecn << ", = " << padding << std::endl;
 
 	cl_array<T> x = cl_array<T> (&ocl, ref, padding);
+	cl_array<int> idxs = cl_array<int> (&ocl, h_idxs, padding);
 	cl_array<T> y = cl_array<T> (&ocl, ref.rows(), ref.cols(), padding);
 
 	_TIMED_CALL_(y = x,  "h_" + op + string_format ("_r%zu_c%zu", rows, cols));
 
 	// copy host_data to device
 	x.sync_device();
+	idxs.sync_device();
 
 	// find max in x and store in y
 	std::string cl_config_string;
@@ -67,16 +72,16 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize_x = 1, int
 
 	for (int i = 0; i < iters; i++) {
 
-		_CL_TIMED_CALL_(cl_config_string = exec_cl_2d (((i % 2 == 0) ? y : x), ((i % 2 == 0) ? x : y), op, lsize_x, lsize_y, ngroups_x, ngroups_y, vecn, profile_cl), ocl, perf_key);
+		_CL_TIMED_CALL_(cl_config_string = exec_cl_2d (((false == 0) ? y : x), idxs, ((false == 0) ? x : y), op, lsize_x, lsize_y, ngroups_x, ngroups_y, vecn, profile_cl), ocl, perf_key);
 
 	}
 
 	// copy device data to host
-	y.sync_host();
+	x.sync_host();
 
 	// std::cout << op + " = \n" << y.ref_host_data << std::endl;
 
-	T err = (y.ref_host_data - ref).cwiseAbs().maxCoeff();
+	T err = (x.ref_host_data - ref).cwiseAbs().maxCoeff();
 
 	const std::string color = (err > 1e-3f) ? ANSI_COLOR_RED : err > 1e-7f ? ANSI_COLOR_YELLOW : "";
 	const std::string keep = (err > 1e-7f) ? "\n" : "\r";
@@ -169,7 +174,7 @@ int main (int argc, char** argv) {
 			ls_x = {1, 2, 4, 8};
 			ws_y = {1};
 			ls_y = {1};
-			vs = {1, 2, 4, 8, 16};
+			vs = {1};
 			kk_iters = 128;
 
 		} else {
@@ -181,7 +186,7 @@ int main (int argc, char** argv) {
 			std::generate_n(ws_x.begin(), ws_x.size(), [] { static int i {static_cast<int>(ocl.current_device_properties.compute_units)}; return i += ocl.current_device_properties.compute_units; });
 			ls_x = {32, 64, 128};
 			ls_y = {1};
-			vs = {1, 2, 4, 8, 16};
+			vs = {1};
 			kk_iters = 128;
 
 		}
@@ -258,7 +263,7 @@ int main (int argc, char** argv) {
 
 				ocl.add_program(kname, fname);
 				ocl.add_kernel (kname, kname);
-				ocl.kernels[kname].bytes_in = (long double)(r * c * sizeof(float)) / (long double)(1 << 30);
+				ocl.kernels[kname].bytes_in = ((long double)(r * c * sizeof(float) + sizeof(int))) / (long double)(1 << 30);
 				ocl.kernels[kname].bytes_out = (long double)(r * c * sizeof(float))  / (long double)(1 << 30);
 				int FLOPS_PER_THREAD = 8 * kk_iters;
 				ocl.kernels[kname].flops = (long double)(r * c * (long double)FLOPS_PER_THREAD)  / (long double)(1 << 30);

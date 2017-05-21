@@ -2,9 +2,9 @@ FILES_CL=*.cl
 FILES_C=*.c
 FILES_C_OMP=*.omp.c
 
-WHICH_CLANG=/Users/kmrocki/git/build-clang/llvm/build/usr/local/bin/clang
+#WHICH_CLANG=/Users/kmrocki/git/build-clang/llvm/build/usr/local/bin/clang
 #default
-#WHICH_CLANG=clang
+WHICH_CLANG=clang
 
 CL_FLAGS="-Xclang -finclude-default-header -S -emit-llvm"
 #-cl-std=CL2.0 -cl-single-precision-constant
@@ -34,11 +34,14 @@ for f1 in $FILES_C
 do
 	$WHICH_CLANG $C_FLAGS -o $f1.ll $f1
 	$WHICH_CLANG $C_FLAGS -O3 -o $f1.o3.ll $f1
+	$WHICH_CLANG $C_FLAGS -Ofast -o $f1.ofast.ll $f1
 	$WHICH_CLANG $C_FLAGS -mllvm -force-vector-width=4 -fslp-vectorize-aggressive -O3 -o $f1.o3_forcevec.ll $f1
+	$WHICH_CLANG $C_FLAGS -mllvm -force-vector-width=4 -fslp-vectorize-aggressive -Ofast -o $f1.ofast_forcevec.ll $f1
 done
 
 for f2 in $FILES_C_OMP
 do
 	$WHICH_CLANG $C_FLAGS $OMP_FLAGS -fopenmp -o $f2.omp.ll $f2
 	$WHICH_CLANG $C_FLAGS $OMP_FLAGS -fopenmp -O3 -o $f2.o3.omp.ll $f2
+	$WHICH_CLANG $C_FLAGS $OMP_FLAGS -fopenmp -Ofast -o $f2.ofast.omp.ll $f2
 done
