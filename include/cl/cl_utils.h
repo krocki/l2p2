@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-04 08:51:00
 * @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-05-19 22:05:32
+* @Last Modified time: 2017-05-21 17:52:05
 */
 
 /* Various helpers used for managing CL code compilation, etc... */
@@ -205,7 +205,7 @@ cl_dev_info clUtils::getDevice (cl_device_id device) {
 	temp = std::string(vs);
 	found_device.vendor_str = (temp == "AMD" || temp == "Advanced Micro Devices, Inc." || temp == "AuthenticAMD") ? "AMD" : temp;
 	found_device.vendor_str = (temp == "NVIDIA" || temp == "NVIDIA Corporation") ? "NVIDIA" : found_device.vendor_str;
-	found_device.vendor_str = (temp == "INTEL" || temp == "Intel" || temp == "GenuineIntel") ? "INTEL" : found_device.vendor_str;
+	found_device.vendor_str = (temp == "INTEL" || temp == "Intel" || temp == "GenuineIntel" || temp == "Intel(R) Corporation") ? "INTEL" : found_device.vendor_str;
 	found_device.vendor_str = (temp == "ARM") ? "ARM" : found_device.vendor_str;
 
 	found_device.compute_units = compute_units;
@@ -225,20 +225,25 @@ cl_dev_info clUtils::getDevice (cl_device_id device) {
 bool is_cpu(cl_dev_info& dinfo) {
 	return dinfo.type_str == "CPU";
 }
+
 bool is_gpu(cl_dev_info& dinfo) {
 	return dinfo.type_str == "GPU";
 }
+
 bool is_acc(cl_dev_info& dinfo) {
 	return dinfo.type_str == "ACC";
 }
+
 bool is_arm(cl_dev_info& dinfo) {
-	return dinfo.type_str == "ARM";
+	return dinfo.vendor_str == "ARM";
 }
+
 bool is_intel(cl_dev_info& dinfo) {
-	return dinfo.type_str == "INTEL";
+	return dinfo.vendor_str == "INTEL";
 }
+
 bool is_nvidia(cl_dev_info& dinfo) {
-	return dinfo.type_str == "NVIDIA";
+	return dinfo.vendor_str == "NVIDIA";
 }
 
 void clUtils::devInfo (cl_device_id device, int extended) {

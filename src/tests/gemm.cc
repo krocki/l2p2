@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-14 20:55:55
 * @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-05-21 13:38:22
+* @Last Modified time: 2017-05-21 17:54:45
 */
 
 #include <iostream>
@@ -164,7 +164,7 @@ int main (int argc, char** argv) {
 		std::vector<int> us = {0, 1};
 		int kk_iters;
 
-		std::cout << ocl.current_device_properties.device_string + " ";
+		std::cout << ocl.current_device_properties.device_string + " : " + ocl.current_device_properties.vendor_str + " ";
 
 		if (is_cpu(ocl.current_device_properties)) {
 
@@ -190,6 +190,8 @@ int main (int argc, char** argv) {
 			kk_iters = 128;
 
 		}
+
+
 
 		auto configurations = generate_configurations(RANDOM_SHUFFLE, rs, cs, ls_x, ls_y, ws_x, ws_y, vs, hs, us);
 

@@ -1,0 +1,239 @@
+https://github.com/clMathLibraries/clBLAS/wiki/AutoGemm
+
+AutoGEMM
+
+I - Introduction to AutoGEMM
+
+Automatic General Matrix Multiply (AutoGEMM) is a Python tool for writing General Matrix Multiply (GEMM) kernels in OpenCL and selecting the fastest available kernel for the GEMM. It supports all major GEMM parameters, such as precisions (single, double, single-complex, and double-complex), orders (column major and row major), and transposes (no transpose, transpose, and conjugate transpose).
+
+For the clBLAS library, the CMake cross-compiler is programmed to use AutoGEMM to produce kernels that are used as the GEMM backend. In this context, AutoGEMM is preconfigured to produce a variety of kernels to handle all GEMM parameters and most matrix sizes optimally. For developers who desire to support unique matrix sizes, see Section IV Customizing AutoGEMM to your needs to customize AutoGEMM for different applications.
+
+II - Achieving Peak GEMM Performance
+
+Authored by David Tanner.
+
+To achieve peak floating-point performance on GPUs (Graphic Processing Units) using GEMM, an implementation must ensure the following:
+
+Global memory bandwidth is not a limiting factor
+Global memory latency is not a limiting factor
+Local memory bandwidth is not a limiting factor
+Local memory latency is not a limiting factor
+Kernel throughput is high
+Highest percentage of MADD instructions
+Special considerations for small MxN matrices
+Special considerations for small K matrices
+Special considerations for "skinny" matrices
+For W9100, the peak double precision floating-point throughput is 2.62 TFlop/s, while the memory throughput is 320 GB/s. Therefore, to achieve peak floating performance, the implementation must perform at least 66 floating-point operations per loaded element.
+
+1. Global memory bandwidth as a limiting factor
+
+A naive GEMM implementation (real precision) performs 2*M*N*K floating-point operations and loads 2*M*N*K elements; that is, the ratio of floating-point operations to the number of loaded elements is 1:1. However, to achieve peak performance, the ratio must be 66:1. To reduce the number of global memory loads, local memory tiles are used.
+
+A GxH local-memory tile reduces the number of loads from global memory to 2*(M/G)*(N/H)*(G+H)*K. Tiling local memory overcomes the global memory bandwidth limitation as long as:
+
+2GH/(G+H) > 66 (i)
+
+Some of the smallest GxH tiles which can achieve peak performance are:
+
+67x67
+56x80
+52x90
+50x100
+40x200
+37x300
+36x400
+35x600
+...
+33xinfinity
+Because a GPU uses a cache to reuse data, peak performance may be achieved with a smaller tile if the cache hit percentage is high enough.
+
+As the memory bandwidth of a GPU increases, the minimum tile size to hide memory bandwidth decreases.
+
+2. Global memory latency as a limiting factor
+
+GPUs hide the high latency of accessing global memory by having a high occupancy of work-groups on each compute unit. The occupancy of kernels of AutoGEMM is limited by register usage (from the size of the microtile). Therefore, while using larger tiles reduces the pressure on global memory bandwidth, it increases the pressure on global memory latency.
+
+3. Local memory bandwidth as a limiting factor
+
+A work-item responsible for a PxQ microtile loads P+Q elements from local memory and performs P*Q MADD operations, thereby resulting in 2PQ/(P+Q) floating point operations (FLOPs) per loaded element. The W9100 has a local data share (LDS) bandwidth of 5240 GB/s and a floating-point throughput of 2620 flop/s, having a ratio of 4 flops/element. This requires a microtile of size PxQ where PQ/(P+Q)>2, and following would be the size of the smallest microtiles:
+
+4x4
+3x6
+However, this assumes that each work-item requests a different element from LDS. The LDS is organized such that for an RxS work-group, all S threads of a row load the same value from A, and all R threads of a column load the same value from B from LDS. This means that for each iteration over K, G*H MADDs are performed but only load the following number of elements:
+
+R*S*(P/S + Q/R) elements
+
+P*R + Q*S elements
+
+G + H elements
+
+So, the AMD implementation does 2GH flops / G+H loads. 2GH/(G+H) > 4 is less restrictive than the criteria mentioned by equation (i) in the sub section 1. Global memory bandwidth as a limiting factor. Therefore, any tile which satisfies equation (i) also ensures that LDS bandwidth is not a limiting factor in achieving peak floating-point performance.
+
+4. Local memory latency as a limiting factor
+
+GPUs hide the latency of accessing local memory by having a high occupancy of work-groups in each compute unit. The occupancy of AutoGEMM kernels is limited by register usage (from the size of the microtile). Currently, it is believed that the peak performance of AutoGEMM kernels is limited by not having a high-enough occupancy to hide the latency of local memory.
+
+5. Kernel throughput is high
+
+A GEMM can be calculated by a kernel using a high-performance tile, say an ideal GxH macrotile in which M is a multiple of G and N is a multiple of H.
+
+When MxN is not an exact multiple of a high-performing tile, then two main options exist for handling the edges.
+
+Put branches in the kernel, so that the last work group computes less than a full tile size; this option slows performance as discussed in section 6. High percentage of MADD instructions.
+Enqueue one kernel to handle as much of MxN that is a multiple of GxH, then enqueuing 1-3 additional kernels to handle the extra rows and columns that are not a multiple of GxH. AutoGEMM is architected to use this option (although in some cases the first option may be faster, especially for small matrices).
+The downside here is that launching 4 kernels/GEMM is slower than launching 1 kernel/GEMM for the following reasons:
+
+There is some overhead in the OpenCL runtime for each kernel launched.
+The ability of the GPU to execute 4 kernels concurrently may be less efficient than executing 1 kernel.
+The 3-edge kernels are slower than the main tile kernel, as they have branches.
+6. High percentage of MADD instructions
+
+The last step to achieve peak performance is to minimize the number of non-MADD instructions, such as branches (if statements or loops) and memory instructions. AutoGEMM, therefore, pulls as many branches as possible outside the kernel. For example, rather than having an if/else for matrix A either getting transposed or not, one kernel is written for the transpose A case and another for the non-transpose A case. AutoGEMM relies on the compiler to combine multiple single-element load instructions into fewer multiple-element load instructions; doing so also reduces the number of non-MADD instructions.
+
+7. Special considerations for small MxN matrices
+
+A small MxN matrix is one which, if partitioned into GxH (peak-performing) tiles, produces too few work-groups to fill all the compute units of a GPU to their maximal occupancy. In this case, the isolated GEMM system is too small to achieve the peak flops of the GPU and the goal is shifted from achieving peak flops to minimizing execution time.
+
+When a kernel uses a microtile of size PxQ, each thread is responsible for P*Q elements of the C matrix. The larger a microtile is, the more serialized is the matrix calculation; that is, a majority of the threads work in serial and fewer threads are required to carry out the GEMM. The smaller a microtile is, the more parallelized is the matrix calculation, and more threads are required to carry out the GEMM.
+
+When the GxH macrotile is too large for the GEMM to fill the GPU, then GPU is starved for concurrent work to fill all the compute units to their maximum occupancy. In these cases it is advantageous to use smaller tile sizes so that the resulting number of work-groups fill up the GPU.
+
+8. Special considerations for small K matrices
+
+When K is small, the ratio of read/writes from the C matrix can outweigh the few MADDs along the small K. The best that can be done for small K matrices is to use a relatively large tile size. A large tile consumes many resources on a compute unit and results in lower occupancy. However, for a small K matrix, as the limiting factor is global memory bandwidth and not global memory latency, using a large tile is a net win.
+
+9. Special considerations for "skinny" matrices
+
+A skinny matrix is one in which M is smaller than the G, or N is smaller than the H of a peak-performing tile size, but the other dimension is large enough to fill the GPU. In these scenarios, the potential for data reuse is less and global memory bandwidth does become a limiting factor.
+
+For a skinny matrix, it is recommended to have the smaller dimension of MxN be the smallest dimension of GxH and to have the other dimension of GxH be as large as possible (to at least re-use data well in one of the dimensions).
+
+III - Architecture
+
+AutoGEMM uses tile and non-tile parameters to describe the kernel and size cutoffs to determine which kernel to use.
+
+Tile parameters:
+
+workGroupNumRows,Cols -- number of rows/columns in a work-group
+microTileNumRows,Cols -- number of rows/columns in each work-item of a microtile
+macroTileNumRows,Cols -- total number of rows/columns in a work-group of a macrotile shared across LDS
+unroll -- the number of iterations the loop over K is unrolled
+Non-tile parameters:
+
+precision -- data is single or double precision and real or complex
+order -- matrices are stored as row-major or column-major
+transA -- matrix A is "N"ot transposed, "T"ransposed or "C"onjugate transposed
+transB -- matrix B is "N"ot transposed, "T"ransposed or "C"onjugate transposed
+beta -- has two values: 0 or 1. When the beta value is "0", the kernel handles zero beta in an optimized fashion and when "1" the kernel handles non-zero betas.
+AutoGEMM Parameters
+
+AutoGEMM defines these parameters in AutoGemmParameters.py as input data to determine which OpenCL kernels to write and how to use them.
+
+precisions = [ "s", "z" ]
+orders = [ "col" ]
+transposes = { "s":[ "N", "T"], "z":["N", "T", "C"] }
+betas = [ 1 ]
+unrolls = { "s":[16, 1], "z":[8, 1] }
+kernelSelectionData = {
+  "s":[
+    [ size0, fallbackTile0, [tile0-0, tile0-1 ... tile0-N] ],
+    [ size1, fallbackTile1, [tile1-0, tile1-1 ... tile1-N] ]
+    ...
+    [ sizeN, fallbackTileN, [tileN-0, tileN-1 ... tileN-N] ]
+  ],
+  "z":[
+    [ size0, fallbackTile0, [tile0-0, tile0-1 ... tile0-N] ],
+    [ size1, fallbackTile1, [tile1-0, tile1-1 ... tile1-N] ]
+    ...
+    [ sizeN, fallbackTileN, [tileN-0, tileN-1 ... tileN-N] ]
+  ]
+}
+In the above example, AutoGEMM creates kernels only for sgemm and zgemm and only for column major kernels. For sgemm, the created kernels can handle all permutations of the real transpose cases (NN, NT, TN, and TT), and for zgemm the created kernels can handle all permutations of the complex transpose cases. For sgemm, it creates kernels which unroll the loop over K by 16 (this makes the loop faster, but this limits K to be a multiple of 16) and creates kernels where K is unrolled 1, that is, not unrolled; similarly it does for zgemm based on the arguments passed to it. It creates kernels which can handle non-zero betas.
+
+Kernel selection data
+
+The kernelSelectionData determines when the various kernel tile sizes get used. The kernel selection logic first narrows down the kernels that will be used by matching exactly the non-tile parameters. It then determines which tile size to use based on the kernelSelectionData as follows -- a kernel "matches" the input matrices if M is a multiple of the macroTileNumRows, N is a multiple of the macroTileNumCols and K is a multiple of unroll.
+
+if (M\*N >= size0\*size0) {
+  if (tile0-0 matches M,N,K) {
+    return tile0-0; // exact match found; only 1 kernel needed
+  }
+  if (tile0-1 matches M,N,K) {
+    return tile0-1; // exact match found; only 1 kernel needed
+  }
+  ...
+  if (tile0-N matches M,N,K) {
+    return tile0-N; // exact match found; only 1 kernel needed
+  }
+  // no exact match found; only 2-4 kernels will be needed
+  return fallbackTile0
+}
+if (M\*N >= size1\*size1) {
+  if (tile1-0 matches M,N,K) {
+    return tile0-0; // exact match found; only 1 kernel needed
+  }
+  if (tile1-1 matches M,N,K) {
+    return tile1-1; // exact match found; only 1 kernel needed
+  }
+  ...
+  if (tile1-N matches M,N,K) {
+    return tile1-N; // exact match found; only 1 kernel needed
+  }
+  // no exact match found; 2-4 kernels will be needed
+  return fallbackTile1
+}
+Generating the kernel selection data
+
+AutoGEMM comes equipped with an AutoGemmProfiler. The profiler is a host application, which by brute-force benchmarks the tile sizes for a range of matrix sizes based on their speed of performance as the fastest, second fastest, and so on. It provides the kernel selection data, which is consumable by AutoGEMM.
+
+AutoGEMM generated files
+
+AutoGEMM generates various output files. The following is the hierarchical list of output files:
+
+AutoGEMM includes:
+
+AutoGemmClKernels.cpp .h -- declares and defines the cl_kernel objects
+AutoGemmKernelBinaries.cpp .h -- declares and defines the kernel binary arrays to be NULL; kernels which are pre-compiled will have a non-null binary array declared which overrides (through pre-processor ifdefs) the null declarations
+AutoGemmKernelBuildOptionsBinary.cpp .h -- declares and defines the build options to be used when building kernels from pre-compiled binaries
+AutoGemmKernelBuildOptionsSource.cpp .h -- declares and defines the build options to be used when building kernels from source
+AutoGemmKernelEnumeration.h -- declares and defines arrays that list all the used tile and non-tile parameters. This file is used only by AutoGEMM adjunct tools for debugging
+AutoGemmKernelSelection.cpp .h -- declares and defines gemmSelectKernel(), which selects the optimal GEMM kernel based on matrix size. clBLAS only includes (#includes) this file which, in turn, includes (#includes) other necessary header files
+AutoGemmKernelSelectionSpecific.cpp .h -- declares and defines gemmSelectKernelSpecific which selects a kernel by specifying the tile parameters. This file is only used by AutoGEMM adjunct tools for debugging
+AutoGemmKernelSources.cpp .h -- First #includes UserGemmKernelSources, then #includes the AutoGEMM kernels in AutoGemmKernelSources/; user-defined kernels override AutoGEMM kernels through preprocessor ifdefs
+AutoGemmKernelsToPreCompile.h -- Lists the kernels that must be pre-compiled. This file is only used by the AutoGemmPreCompile project
+AutoGemmKernelBinaries (will be empty if no kernels selected to be pre-compiled)
+
+AutoGemmKernelBinariesPreCompiled.cpp .h -- #includes all the pre-compiled binary kernel files
+*_bin.cpp -- pre-compiled binary kernel files
+AutoGemmKernelSources
+
+*_src.cpp -- kernel source files
+"Building" AutoGEMM with CMake for clBLAS
+
+CMake handles the dependencies for running AutoGEMM within the context of clBLAS. Within CMake, the user specifies which kernels, if any, are to be pre-compiled. The user chooses from a list of precisions and transpose pairs. All kernels (all tiles, beta, orders) fitting those descriptions are precompiled. The user may also choose the OpenCL compiler version to use: 2.0 (recommended) if available, or 1.2.
+
+CMake is configured as follows:
+
+Run AutoGemm.py to generate headers.
+(if pre-compiling) Run KernelsToPreCompile.py to generate AutoGemmKernelsToPreCompile.h which gets compiled into AutoGemm_PreCompile_Bin.
+(if pre-compiling) Compile AutoGemm_PreCompile_Bin.
+(if pre-compiling) Execute AutoGemm_PreCompile_Bin to generate AutoGemmKernelBinariesPreCompiled.cpp, .h and *_bin.cpp.
+Compile clBLAS now that all the dependencies have been generated.
+IV - Customizing AutoGEMM to your needs
+
+AutoGEMM within clBLAS comes pre-loaded with a list of kernels to use and kernel selection data, usually based on AMD's latest generation flagship GPU, which would suffice most applications. Advanced users or developers seeking a higher level of performance for unique applications (e.g., "skinny" matrices) may which to re-parameterize AutoGEMM and re-tune it to they needs.
+
+Customize kernel assortment for an application
+
+Because data re-use is higher, square macrotile sizes outperform their rectangular counterparts; therefore, AutoGEMM usually yields the highest performance by using square macrotiles. However, AutoGEMM supports most work-group dimensions and microtile dimensions, which in turn can produce a wide range of macrotile dimensions (though this feature is not fully tested/debugged).
+
+To add your own custom tile:
+
+Add the dimensions of the new tile anywhere within the kernelSelectionData.
+Re-run AutoGEMM. It will write kernels using your new tile size and, importantly, it will add those tile sizes to AutoGemmKernelEnumeration.h.
+Compile and run the AutoGemm_Tools_Profile project. This task benchmarks all matrix sizes using all tile sizes including the new one. It also outputs the new kernel selection data which indicates the matrices for which your new kernel is the fastest (and is recommended to use).
+Caveat: If your new kernel is designed to be fast for matrices of a particular dimension, for example: skinny tile for skinny matrices, you would first need to modify ProfileAutoGemm.cpp so that the profiler tests your custom matrix dimension.
+
+Tuning kernel selection to new GPU
+
+To benchmark matrices for a new GPU, perform Step 3 under the section Customize Kernel Assortment for an Application. The step outputs new data which must be copied to kernelSelectionData of AutoGEMM.

@@ -142,7 +142,15 @@ public:
 	int add_program(std::string program_name, const char* fname, const char* build_flags = "") {
 
 		log += string_format ("building program '%s' from file '%s'\n", program_name.c_str(), fname);
-		cl_programs[program_name] = clUtils::compileProgram (fname, _ctx, device_in_use, build_flags);
+
+		std::string all_flags = std::string(build_flags);
+
+		//platform dependent flags
+		if (!is_intel(current_device_properties)) {
+			all_flags += "-cl-strict-aliasing"; //intel doesn't recognize this
+		}
+
+		cl_programs[program_name] = clUtils::compileProgram (fname, _ctx, device_in_use, all_flags.c_str());
 
 		if (!cl_programs[program_name]) {
 			log += string_format ("'%s' ('%s') compilation failed\n", program_name.c_str(), fname);

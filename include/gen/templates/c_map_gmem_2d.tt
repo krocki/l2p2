@@ -9,6 +9,10 @@ void k_gen_$N$_$LX$_$LY$_$WX$_$WY$_$G$_$TV$_$H$_$TRANS$_c_map_gmem_2d_$FUNCNAME$
 	__attribute__((opencl_unroll_hint(2)))
 		for (int gid = 0; gid < $G$ * $WY$; gid++) {
 
+#if $B$
+	barrier(CLK_LOCAL_MEM_FENCE);
+#endif
+
 			$FUNC$
 
 		}
@@ -16,6 +20,21 @@ void k_gen_$N$_$LX$_$LY$_$WX$_$WY$_$G$_$TV$_$H$_$TRANS$_c_map_gmem_2d_$FUNCNAME$
 }
 
 /*
+
+When using 2 or 3 dimensional work group sizes with
+a local size of 1 in some dimension, consider using
+get_group_id instead of get_global_id
+• Can specify the reqd_work_group_size attribute
+to hint to the compiler what you’re going to launch it
+with
+• As with C/C++, use the const/restrict keywords
+for the inputs where appropriate to make sure the
+compiler can optimise memory accesses (-clstrict-aliasing
+in 1.0/1.1 as well)
+• Try to use unsigned types for indexing and branching
+
+
+
 #if __clang__
 typedef float float16 __attribute__((ext_vector_type(16)));
 typedef float float8 __attribute__((ext_vector_type(8)));
