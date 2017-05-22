@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-14 20:55:55
 * @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-05-21 17:54:45
+* @Last Modified time: 2017-05-21 23:08:27
 */
 
 #include <iostream>
@@ -23,6 +23,7 @@ cl_ctx ocl;
 unsigned long total_runs = 0L;
 unsigned long total_errors = 0L;
 bool profile_cl = true;
+profiling_type prof_enabled = CPU_GPU;
 
 int init_cl(int dev) {
 
@@ -42,23 +43,33 @@ int init_cl(int dev) {
 template<class T>
 int run_benchmark(size_t rows, size_t cols, std::string op, int lsize_x = 1, int lsize_y = 1, int ngroups_x = 1, int ngroups_y = 1, int vecn = 1, int iters = 1) {
 
-	array_t<T> ref(rows, cols);
-	ref.setRandom();
+	array_t<T> eA(rows, cols);
+	array_t<T> eB(rows, cols);
+	array_t<T> eC(rows, cols);
 
-	// std::cout << "ref:" << std::endl;
-	// std::cout << ref << std::endl;
+	eA.setRandom();
+	eB.setRandom();
 
+	// std::cout << "eA:" << std::endl;
+	// std::cout << eA << std::endl;
+	// std::cout << "eB:" << std::endl;
+	// std::cout << eB << std::endl;
 	// make an opencl copy of the eigen array
 	size_t padding = lsize_x * ngroups_x * lsize_y * ngroups_y * vecn;
 	//std::cout << "padding: " << lsize << ", " << ngroups << ", " << vecn << ", = " << padding << std::endl;
 
-	cl_array<T> x = cl_array<T> (&ocl, ref, padding);
-	cl_array<T> y = cl_array<T> (&ocl, ref.rows(), ref.cols(), padding);
+	cl_array<T> A = cl_array<T> (&ocl, eA, padding);
+	cl_array<T> B = cl_array<T> (&ocl, eB, padding);
+	cl_array<T> C = cl_array<T> (&ocl, eC, padding);
 
-	_TIMED_CALL_(y = x,  "h_" + op + string_format ("_r%zu_c%zu", rows, cols));
+	_TIMED_CALL_(eC = eA * eB,  "h_gemm" + string_format ("_r%zu_c%zu", rows, cols));
+
+	// std::cout << "eC:" << std::endl;
+	// std::cout << eC << std::endl;
 
 	// copy host_data to device
-	x.sync_device();
+	A.sync_device();
+	B.sync_device();
 
 	// find max in x and store in y
 	std::string cl_config_string;
@@ -67,26 +78,29 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize_x = 1, int
 
 	for (int i = 0; i < iters; i++) {
 
-		_CL_TIMED_CALL_(cl_config_string = exec_cl_2d (((i % 2 == 0) ? y : x), ((i % 2 == 0) ? x : y), op, lsize_x, lsize_y, ngroups_x, ngroups_y, vecn, profile_cl), ocl, perf_key);
+		_CL_TIMED_CALL_(cl_config_string = exec_cl_gemm (C, A, B, op, lsize_x, lsize_y, ngroups_x, ngroups_y, vecn, profile_cl), ocl, perf_key);
 
 	}
 
 	// copy device data to host
-	y.sync_host();
-
+	C.sync_host();
+	//std::cout << "C:" << std::endl;
+	//std::cout << C.ref_host_data << std::endl;
 	// std::cout << op + " = \n" << y.ref_host_data << std::endl;
 
-	T err = (y.ref_host_data - ref).cwiseAbs().maxCoeff();
+	array_t<T> err = (C.ref_host_data - eC);
+	//std::cout << "err:" << std::endl;
+	//std::cout << err << std::endl;
+	T errmax = err.cwiseAbs().maxCoeff();
+	std::cout << "err max:" << std::endl;
+	std::cout << errmax << std::endl;
 
-	const std::string color = (err > 1e-3f) ? ANSI_COLOR_RED : err > 1e-7f ? ANSI_COLOR_YELLOW : "";
-	const std::string keep = (err > 1e-7f) ? "\n" : "\r";
+	const std::string color = (errmax > 1e-3f) ? ANSI_COLOR_RED : errmax > 1e-7f ? ANSI_COLOR_YELLOW : "";
+	const std::string keep = (errmax > 1e-7f) ? "\n" : "\r";
 
-	// const std::string message = color + "[ reduce test: op = '" + op + "', size = " + std::to_string(x.rows()) + " x " + std::to_string(x.cols()) + " ( " + std::to_string (x.rows() * x.cols()) + " ) " + " ] --->  ERR: " + std::to_string(err) + ANSI_COLOR_RESET + "; " + cl_config_string + keep;
-
-	// std::cout << message;
 	total_runs++;
 
-	if (err > 1e-6f) {
+	if (errmax > 1e-4f) {
 		total_errors++;
 		pdata[perf_key].errors++;
 	}
@@ -135,16 +149,14 @@ int main (int argc, char** argv) {
 
 		if (argc > 4) { outpath = std::string(argv[4]); }
 
-		int bench_iters = 50;
-		int psize = 20;
+		int bench_iters = 100;
+		int psize = 5;
 
 		if (argc > 5) { bench_iters = std::stoi(argv[5]); }
 		if (argc > 6) { psize = std::stoi(argv[6]); }
 
 		std::string debug_fname = "debug_" + generic_name + "_" + func_name + ".txt";
 		std::string results_fname = "bench_" + generic_name + "_" + func_name + ".txt";
-
-
 
 		std::cout << "device = " << requested_device << "; ";
 		std::cout << "generic name = " << generic_name << "; ";
@@ -155,13 +167,13 @@ int main (int argc, char** argv) {
 		std::cout << "size = " << "2^" << psize << "; ";
 		init_cl(requested_device);
 
-		std::vector<int> rs = {1 << psize};
-		std::vector<int> cs = {1};
+		std::vector<int> rs = {512};
+		std::vector<int> cs = {512};
 		std::vector<int> ls_x, ls_y;
 		std::vector<int> ws_x, ws_y;
-		std::vector<int> vs = {};
-		std::vector<int> hs = {0, 1}; //__attribute__((vec_type_hint(T)))
-		std::vector<int> us = {0, 1};
+		std::vector<int> vs = {1};
+		std::vector<int> hs = {0}; //__attribute__((vec_type_hint(T)))
+		std::vector<int> us = {0};
 		int kk_iters;
 
 		std::cout << ocl.current_device_properties.device_string + " : " + ocl.current_device_properties.vendor_str + " ";
@@ -170,28 +182,22 @@ int main (int argc, char** argv) {
 
 			std::cout << "CPU" << std::endl;
 			//std::generate_n(rs.begin(), rs.size(), [] { static int i {1 << 22}; return i <<= 2; });
-			ws_x = {1, 2, 4, 8};
-			ls_x = {1, 2, 4, 8};
+			ws_x = {512};
+			ls_x = {1};
 			ws_y = {1};
 			ls_y = {1};
-			vs = {1, 2, 4, 8, 16};
-			kk_iters = 128;
+			kk_iters = 1;
 
 		} else {
 
 			std::cout << "GPU" << std::endl;
-			//std::generate_n(rs.begin(), rs.size(), [] { static int i {1 << 14}; return i <<= 2; });
-			ws_x.resize(6);
+			ws_x = {16};
+			ls_x = {32};
 			ws_y = {1};
-			std::generate_n(ws_x.begin(), ws_x.size(), [] { static int i {static_cast<int>(ocl.current_device_properties.compute_units)}; return i += ocl.current_device_properties.compute_units; });
-			ls_x = {32, 64, 128};
 			ls_y = {1};
-			vs = {1, 2, 4, 8, 16};
-			kk_iters = 128;
+			kk_iters = 1;
 
 		}
-
-
 
 		auto configurations = generate_configurations(RANDOM_SHUFFLE, rs, cs, ls_x, ls_y, ws_x, ws_y, vs, hs, us);
 
@@ -265,9 +271,9 @@ int main (int argc, char** argv) {
 
 				ocl.add_program(kname, fname);
 				ocl.add_kernel (kname, kname);
-				ocl.kernels[kname].bytes_in = (long double)(r * c * sizeof(float)) / (long double)(1 << 30);
+				ocl.kernels[kname].bytes_in = (long double)(2 * r * c * sizeof(float)) / (long double)(1 << 30);
 				ocl.kernels[kname].bytes_out = (long double)(r * c * sizeof(float))  / (long double)(1 << 30);
-				int FLOPS_PER_THREAD = 8 * kk_iters;
+				int FLOPS_PER_THREAD = 2 * r;
 				ocl.kernels[kname].flops = (long double)(r * c * (long double)FLOPS_PER_THREAD)  / (long double)(1 << 30);
 
 				ocl.err = 0;

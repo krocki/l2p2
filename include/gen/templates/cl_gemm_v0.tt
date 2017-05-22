@@ -1,64 +1,18 @@
-
-__kernel void k_gen_cl_gemm_v0(
+__kernel void k_gen_cl_gemm_v0_(
     const int N,
+    __global float* C,
     __global float* A,
-    __global float* B,
-    __global float* C) {
-	int k;
-	int i = get_global_id(0);
-	int j = get_global_id(1);
-	float tmp;
-	if ((i < N) && (j < N)) {
-		tmp = 0.0;
-		for (k = 0; k < N; k++)
-			tmp += A[i * N + k] * B[k * N + j];
-		C[i * N + j] = tmp;
-	}
+    __global float* B) {
+
+	const int i = get_global_id(0);
+	const int j = get_global_id(1);
+	const int n = get_global_size(0);
+
+	float tmp = 0.0f;
+
+	for (int k = 0; k < n; k++)
+		tmp += A[k * n + j] * B[i * n + k];
+
+	C[i * n + j] = tmp;
+
 }
-
-
-// row:
-
-// __kernel void mmul(
-// 	const int N,
-// 	__global float* A,
-// 	__global float* B,
-// 	__global float* C)
-// {
-// 	int k, j;
-// 	int i = get_global_id(0);
-// 	float tmp;
-// 	if (i < N) {
-// 		for (j = 0; j < N; j++) {
-// 			tmp = 0.0;
-// 			for (k = 0; k < N; k++)
-// 				tmp += A[i*N+k] * B[k*N+j];
-// 			C[i*N+j] = tmp;
-// 		}
-// 	}
-// }
-
-// row private:
-
-// __kernel void mmul(
-//     const int N,
-//     __global float* A,
-//     __global float* B,
-//     __global float* C)
-// {
-//     int k, j;
-//     int i = get_global_id(0);
-//     float Awrk[1024];
-//     float tmp;
-//     if (i < N) {
-//         for (k = 0; k < N; k++)
-//             Awrk[k] = A[i*N+k];
-
-//         for (j = 0; j < N; j++) {
-//             tmp = 0.0f;
-//             for (k = 0; k < N; k++)
-//                 tmp += Awrk[k] * B[k*N+j];
-//             C[i*N+j] = tmp;
-//         }
-//     }
-// }

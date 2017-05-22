@@ -12,25 +12,6 @@ __kernel void k_gen_$N$_$LX$_$LY$_$WX$_$WY$_$G$_$TV$_$H$_$TRANS$_cl_map_gmem_2d_
 		int gid = get_global_id(0) * get_global_size(1) + get_global_id(1);
 	#endif
 
-$FUNC$
+	$FUNC$
 
 }
-
-// on NV, not reaching peak BW with copy, but about 70% (245GB/s on Titan X), it might be possible that:
-// need at least 2 kernels, just read or just write, or something else
-// CUDA bandwidth test reports similar numbers
- // Host to Device Bandwidth, 1 Device(s)
- // PINNED Memory Transfers
- //   Transfer Size (Bytes)	Bandwidth(MB/s)
- //   33554432			11819.8
-
- // Device to Host Bandwidth, 1 Device(s)
- // PINNED Memory Transfers
- //   Transfer Size (Bytes)	Bandwidth(MB/s)
- //   33554432			12041.5
-
- // Device to Device Bandwidth, 1 Device(s)
- // PINNED Memory Transfers
- //   Transfer Size (Bytes)	Bandwidth(MB/s)
- //   33554432			247884.3
-// and p2pBandwidthLatencyTest shows around 252 (multiple streams)

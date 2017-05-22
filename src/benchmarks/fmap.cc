@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-14 20:55:55
 * @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-05-21 13:38:22
+* @Last Modified time: 2017-05-21 20:17:48
 */
 
 #include <iostream>
@@ -135,16 +135,14 @@ int main (int argc, char** argv) {
 
 		if (argc > 4) { outpath = std::string(argv[4]); }
 
-		int bench_iters = 50;
-		int psize = 20;
+		int bench_iters = 200;
+		int psize = 23;
 
 		if (argc > 5) { bench_iters = std::stoi(argv[5]); }
 		if (argc > 6) { psize = std::stoi(argv[6]); }
 
 		std::string debug_fname = "debug_" + generic_name + "_" + func_name + ".txt";
 		std::string results_fname = "bench_" + generic_name + "_" + func_name + ".txt";
-
-
 
 		std::cout << "device = " << requested_device << "; ";
 		std::cout << "generic name = " << generic_name << "; ";
@@ -155,7 +153,7 @@ int main (int argc, char** argv) {
 		std::cout << "size = " << "2^" << psize << "; ";
 		init_cl(requested_device);
 
-		std::vector<int> rs = {1 << psize};
+		std::vector<int> rs = {1 << (psize - 4), 1 << (psize - 3), 1 << (psize - 2), 1 << (psize - 1), 1 << psize};
 		std::vector<int> cs = {1};
 		std::vector<int> ls_x, ls_y;
 		std::vector<int> ws_x, ws_y;
@@ -184,8 +182,8 @@ int main (int argc, char** argv) {
 			ws_x.resize(6);
 			ws_y = {1};
 			std::generate_n(ws_x.begin(), ws_x.size(), [] { static int i {static_cast<int>(ocl.current_device_properties.compute_units)}; return i += ocl.current_device_properties.compute_units; });
-			ls_x = {32, 64, 128};
-			ls_y = {1};
+			ls_x = {8, 16, 32, 64, 128, 256};
+			ls_y = {1, 2, 4};
 			vs = {1, 2, 4, 8, 16};
 			kk_iters = 128;
 

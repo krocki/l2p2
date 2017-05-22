@@ -25,7 +25,7 @@ typedef enum profiling_type {OFF = 0, CPU_ONLY = 1, GPU_ONLY = 2, CPU_GPU = 3} p
 		func; \
 		if (CPU_PROF_ENABLED) { \
 			func_end = std::chrono::system_clock::now(); \
-			double func_time = ( double ) std::chrono::duration_cast<std::chrono::nanoseconds> ( func_end - func_start ).count(); \
+			double func_time = (( double ) std::chrono::duration_cast<std::chrono::nanoseconds> ( func_end - func_start ).count())/1e9; \
 			std::string key = std::string(__VA_ARGS__); \
 			std::string desc = std::string(#func); desc = ""; \
 			if (key.empty()) { key = std::string(#func); desc = std::string(__VA_ARGS__); } \
@@ -46,7 +46,7 @@ typedef enum profiling_type {OFF = 0, CPU_ONLY = 1, GPU_ONLY = 2, CPU_GPU = 3} p
 		ocl.barrier(); \
 		if (CPU_PROF_ENABLED) { \
 			func_end = std::chrono::system_clock::now(); \
-			double func_time = ( double ) std::chrono::duration_cast<std::chrono::nanoseconds> ( func_end - func_start ).count(); \
+			double func_time = (( double ) std::chrono::duration_cast<std::chrono::nanoseconds> ( func_end - func_start ).count())/1e9; \
 			std::string key = std::string(__VA_ARGS__); \
 			std::string desc = std::string(#func); desc = "";\
 			if (key.empty()) { key = std::string(#func); desc = std::string(__VA_ARGS__); } \
@@ -227,6 +227,5 @@ std::string show_profiling_data (Dict<performance_counter>& pdata, sort_method_t
 
 
 Dict<performance_counter> pdata;
-profiling_type prof_enabled = GPU_ONLY;
 
 #endif /*__PERF_H__*/
