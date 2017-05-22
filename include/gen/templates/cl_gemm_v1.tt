@@ -18,7 +18,7 @@ __kernel void k_gen_cl_gemm_v1_(const int N, __global float* restrict C, const _
 	for (int k = 0; k < n; k++)
 		Ctmp += A[k * n + j] * B[i * n + k];
 
-	C[i * n + j] = Ctmp;
+	C[i * n + j] = get_group_id(0);
 
 }
 
