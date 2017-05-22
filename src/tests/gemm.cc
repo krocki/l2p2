@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-14 20:55:55
 * @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-05-21 23:08:27
+* @Last Modified time: 2017-05-22 07:56:06
 */
 
 #include <iostream>
@@ -84,8 +84,8 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize_x = 1, int
 
 	// copy device data to host
 	C.sync_host();
-	//std::cout << "C:" << std::endl;
-	//std::cout << C.ref_host_data << std::endl;
+	std::cout << "C:" << std::endl;
+	std::cout << C.ref_host_data << std::endl;
 	// std::cout << op + " = \n" << y.ref_host_data << std::endl;
 
 	array_t<T> err = (C.ref_host_data - eC);
@@ -167,8 +167,11 @@ int main (int argc, char** argv) {
 		std::cout << "size = " << "2^" << psize << "; ";
 		init_cl(requested_device);
 
-		std::vector<int> rs = {512};
-		std::vector<int> cs = {512};
+#define blksz 16
+#define msize 32
+
+		std::vector<int> rs = {msize};
+		std::vector<int> cs = {msize};
 		std::vector<int> ls_x, ls_y;
 		std::vector<int> ws_x, ws_y;
 		std::vector<int> vs = {1};
@@ -178,23 +181,25 @@ int main (int argc, char** argv) {
 
 		std::cout << ocl.current_device_properties.device_string + " : " + ocl.current_device_properties.vendor_str + " ";
 
+
+
 		if (is_cpu(ocl.current_device_properties)) {
 
 			std::cout << "CPU" << std::endl;
 			//std::generate_n(rs.begin(), rs.size(), [] { static int i {1 << 22}; return i <<= 2; });
-			ws_x = {512};
-			ls_x = {1};
-			ws_y = {1};
-			ls_y = {1};
+			ws_x = {msize / blksz};
+			ls_x = {blksz};
+			ws_y = {msize / blksz};
+			ls_y = {blksz};
 			kk_iters = 1;
 
 		} else {
 
 			std::cout << "GPU" << std::endl;
-			ws_x = {16};
-			ls_x = {32};
-			ws_y = {1};
-			ls_y = {1};
+			ws_x = {msize / blksz};
+			ls_x = {blksz};
+			ws_y = {msize / blksz};
+			ls_y = {blksz};
 			kk_iters = 1;
 
 		}
@@ -230,7 +235,7 @@ int main (int argc, char** argv) {
 
 			int iters = n / (g * v); // need exactly iters iterations
 			// new
-			wy = iters;
+			//wy = iters;
 
 			Dict<var_t> values, f_values;
 			values["$N$"] = std::to_string(n);
