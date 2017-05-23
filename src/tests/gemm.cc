@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-14 20:55:55
 * @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-05-22 07:56:06
+* @Last Modified time: 2017-05-22 21:06:59
 */
 
 #include <iostream>
@@ -168,7 +168,7 @@ int main (int argc, char** argv) {
 		init_cl(requested_device);
 
 #define blksz 16
-#define msize 512
+#define msize 2048
 
 		std::vector<int> rs = {msize};
 		std::vector<int> cs = {msize};

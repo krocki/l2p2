@@ -2,7 +2,7 @@
 // based on https://github.com/HandsOnOpenCL/Exercises-Solutions/blob/master/Solutions/Exercise08/C_block_form.cl
 
 #define blksz 16
-#define O 2048
+#define O 512
 
 __kernel void k_gen_cl_gemm_v1_(const int N, __global float* restrict C, const __global float* restrict A, const __global float* restrict B) {
 
@@ -16,7 +16,7 @@ __kernel void k_gen_cl_gemm_v1_(const int N, __global float* restrict C, const _
 
 	const int i = get_global_id(0);
 	const int j = get_global_id(1);
-
+	
 	// Element C(i,j) is in block C(Iblk,Jblk)
 	const int Iblk = get_group_id(0);
 	const int Jblk = get_group_id(1);
@@ -50,7 +50,7 @@ __kernel void k_gen_cl_gemm_v1_(const int N, __global float* restrict C, const _
 
 		// Compute dot products over local blocks to find
 		// the contribution to C(i,j) from this block
-#pragma unroll
+		#pragma unroll
 		for (kloc = 0; kloc < blksz; kloc++)
 			Ctmp += Awrk[kloc * blksz + jloc] * Bwrk[iloc * blksz + kloc];
 
