@@ -84,8 +84,8 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize_x = 1, int
 
 	// copy device data to host
 	C.sync_host();
-	std::cout << "C:" << std::endl;
-	std::cout << C.ref_host_data << std::endl;
+	// std::cout << "C:" << std::endl;
+	// std::cout << C.ref_host_data << std::endl;
 	// std::cout << op + " = \n" << y.ref_host_data << std::endl;
 
 	array_t<T> err = (C.ref_host_data - eC);
@@ -168,7 +168,7 @@ int main (int argc, char** argv) {
 		init_cl(requested_device);
 
 #define blksz 16
-#define msize 32
+#define msize 512
 
 		std::vector<int> rs = {msize};
 		std::vector<int> cs = {msize};
