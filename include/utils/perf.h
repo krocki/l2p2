@@ -73,6 +73,7 @@ public:
 	long double bytes_out = 0.0;
 	unsigned long long calls = 0L;
 	unsigned long long errors = 0L;
+	double errmax = 0.0;
 
 	performance_counter (std::string _description = "") : description (_description) {
 		reset();
@@ -102,11 +103,10 @@ public:
 		results += ", T = " + std::to_string(time) + " s";
 		results += ", t/call " + std::to_string((time * 1e3) / ((long double)calls)) + " ms";
 
-
 		long double GBs = (bytes_in + bytes_out) / time;
 		long double GFs = flops / time;
 
-		results += " " + padstr(std::to_string(GBs) + " GB/s", 10) + " " + padstr(std::to_string(GFs) + " GF/s ", 10);
+		results += " err: " + padstr(std::to_string(errmax), 10) + " " + padstr(std::to_string(GBs) + " GB/s", 10) + " " + padstr(std::to_string(GFs) + " GF/s ", 10);
 		//results += string_format (", err %3.2f", ((long double)errors / (long double)calls));
 		//if (!description.empty() ) results += padstr(description, 20);
 
