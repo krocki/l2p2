@@ -61,7 +61,7 @@ std::chrono::time_point<std::chrono::system_clock> start, end;
 
 class performance_counter {
 
-public:
+  public:
 
 	std::string key = "";
 	std::string description = "";
@@ -99,14 +99,17 @@ public:
 
 		std::string results = "";
 
-		results += "err/total " + std::to_string(errors) + "/" + std::to_string(calls);
-		results += ", T = " + std::to_string(time) + " s";
-		results += ", t/call " + std::to_string((time * 1e3) / ((long double)calls)) + " ms";
+		if (errmax > 1) results += "!!! ERR " + std::to_string(errors); else {
+			results += "errs " + std::to_string(errors);
+			results += ", T = " + std::to_string(time) + " s";
+			results += ", t/call " + std::to_string((time * 1e3) / ((long double)calls)) + " ms";
 
-		long double GBs = (bytes_in + bytes_out) / time;
-		long double GFs = flops / time;
+			long double GBs = (bytes_in + bytes_out) / time;
+			long double GFs = flops / time;
 
-		results += " err: " + padstr(std::to_string(errmax), 10) + " " + padstr(std::to_string(GBs) + " GB/s", 10) + " " + padstr(std::to_string(GFs) + " GF/s ", 10);
+			results += " err: " + padstr(std::to_string(errmax), 10) + " " + padstr(std::to_string(GBs) + " GB/s", 10) + " " + padstr(std::to_string(GFs) + " GF/s ", 10);
+		}
+
 		//results += string_format (", err %3.2f", ((long double)errors / (long double)calls));
 		//if (!description.empty() ) results += padstr(description, 20);
 

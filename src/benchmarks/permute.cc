@@ -1,8 +1,8 @@
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-05-14 20:55:55
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-05-20 22:10:18
+* @Last Modified by:   Kamil Rocki
+* @Last Modified time: 2017-05-24 13:49:25
 */
 
 #include <iostream>
@@ -23,6 +23,7 @@ cl_ctx ocl;
 unsigned long total_runs = 0L;
 unsigned long total_errors = 0L;
 bool profile_cl = true;
+profiling_type prof_enabled = CPU_GPU;
 
 int init_cl(int dev) {
 

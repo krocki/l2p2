@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-04 08:51:00
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-05-21 17:52:05
+* @Last Modified by:   Kamil Rocki
+* @Last Modified time: 2017-05-25 14:02:56
 */
 
 /* Various helpers used for managing CL code compilation, etc... */
@@ -70,7 +70,7 @@ typedef struct {
 
 class clUtils {
 
-public:
+  public:
 
 	static std::vector <cl_dev_info> getAllDevices (cl_device_type dev_type = CL_DEVICE_TYPE_ALL);
 	static std::vector <compute_device_info> listDevices (cl_device_type dev_type = CL_DEVICE_TYPE_ALL);

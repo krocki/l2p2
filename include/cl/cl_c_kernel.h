@@ -1,8 +1,8 @@
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-05-15 09:55:43
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-05-17 22:09:17
+* @Last Modified by:   Kamil Rocki
+* @Last Modified time: 2017-05-25 14:13:17
 */
 
 #include <string>
@@ -13,7 +13,7 @@
 
 class compute_kernel {
 
-public:
+  public:
 
 	std::vector<std::string> intermediate = {};
 
@@ -22,6 +22,10 @@ public:
 	long double flops = 0.0;
 	long double bytes_in = 0.0;
 	long double bytes_out = 0.0;
+
+	std::string device_name = "";
+	size_t max_wsize; // max number of workgroup for this kernel & device
+	size_t lmem; // required lmem size
 
 };
 

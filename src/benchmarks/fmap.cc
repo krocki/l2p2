@@ -1,8 +1,8 @@
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-05-14 20:55:55
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-05-21 20:17:48
+* @Last Modified by:   Kamil Rocki
+* @Last Modified time: 2017-05-24 14:09:49
 */
 
 #include <iostream>
@@ -23,6 +23,7 @@ cl_ctx ocl;
 unsigned long total_runs = 0L;
 unsigned long total_errors = 0L;
 bool profile_cl = true;
+profiling_type prof_enabled = CPU_GPU;
 
 int init_cl(int dev) {
 
@@ -168,8 +169,8 @@ int main (int argc, char** argv) {
 
 			std::cout << "CPU" << std::endl;
 			//std::generate_n(rs.begin(), rs.size(), [] { static int i {1 << 22}; return i <<= 2; });
-			ws_x = {1, 2, 4, 8};
-			ls_x = {1, 2, 4, 8};
+			ws_x = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12};
+			ls_x = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12};
 			ws_y = {1};
 			ls_y = {1};
 			vs = {1, 2, 4, 8, 16};
@@ -182,7 +183,7 @@ int main (int argc, char** argv) {
 			ws_x.resize(6);
 			ws_y = {1};
 			std::generate_n(ws_x.begin(), ws_x.size(), [] { static int i {static_cast<int>(ocl.current_device_properties.compute_units)}; return i += ocl.current_device_properties.compute_units; });
-			ls_x = {8, 16, 32, 64, 128, 256};
+			ls_x = {8, 16, 32, 64};
 			ls_y = {1, 2, 4};
 			vs = {1, 2, 4, 8, 16};
 			kk_iters = 128;

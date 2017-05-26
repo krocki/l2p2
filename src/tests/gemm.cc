@@ -1,8 +1,8 @@
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-05-14 20:55:55
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-05-22 21:06:59
+* @Last Modified by:   Kamil Rocki
+* @Last Modified time: 2017-05-25 17:08:59
 */
 
 #include <iostream>
@@ -168,7 +168,11 @@ int main (int argc, char** argv) {
 		std::cout << ocl.getlog() << std::endl;
 
 		std::vector<int> msizes = {1024};
-		std::vector<int> blksizes = {2, 4, 8, 16, 32};
+		std::vector<int> lxs = {1, 2, 4, 8, 16, 32};
+		std::vector<int> lys = {1, 2, 4};
+		std::vector<int> kxs = {1, 2, 4, 8, 16};
+		std::vector<int> kys = {1, 2, 4, 8, 16};
+		std::vector<int> versions = {0, 1};
 
 		int kk_iters;
 
@@ -184,7 +188,7 @@ int main (int argc, char** argv) {
 
 		}
 
-		auto configurations = generate_configurations(RANDOM_SHUFFLE, msizes, blksizes);
+		auto configurations = generate_configurations(RANDOM_SHUFFLE, msizes, lxs, lys, kxs, kys, versions);
 
 		long double top_gb = 0;
 		std::string conf_str_gb = "";
@@ -201,22 +205,41 @@ int main (int argc, char** argv) {
 
 			std::string t = "float";
 			int msize = std::get<0>(config);
-			int blksz = std::get<1>(config);
-			int wx = msize / blksz;
-			int lx = blksz;
-			int wy = msize / blksz;
-			int ly = blksz;
+			int lx = std::get<1>(config);
+			std::cout << "m = " << msize << " x " << msize << std::endl;
+			//int lx = blksz * blksz;
+			int ly = std::get<2>(config);
+			std::cout << "lx = " << lx << " x " << ly << std::endl;
+			int wx_reqd = msize / lx;
+			int wy_reqd = msize / ly;
+			std::cout << "wx_reqd = " << wx_reqd << " x " << wy_reqd << std::endl;
+			int KX = std::get<3>(config);
+			int KY = std::get<4>(config);
+			int ver = std::get<5>(config);
+			std::cout << "K = " << KX << " x " << KY << std::endl;
+			int wx = wx_reqd / KX;
+			int wy = wy_reqd / KY;
+			std::cout << "w = " << wx << " x " << wy << std::endl;
 			int g = lx * wx * ly * wy;
+			std::cout << "g: " << g << std::endl;
 			int v = 1;
 
 			Dict<var_t> values;
 
 			//gemm
 			values["$ORDER$"] = std::to_string(msize);
-			values["$BLKSZ$"] = std::to_string(blksz);
-			values["$NUM_BLK$"] = std::to_string(msize/blksz);
-			values["$A_INC$"] = std::to_string(msize*blksz);
-			values["$B_INC$"] = std::to_string(blksz);
+
+			values["$KX$"] = std::to_string(KX);
+			values["$KY$"] = std::to_string(KY);
+			values["$NX$"] = std::to_string(wx * lx);
+			values["$NY$"] = std::to_string(wy * ly);
+			values["$VER$"] = std::to_string(ver);
+			values["$LX$"] = std::to_string(lx);
+			values["$LY$"] = std::to_string(ly);
+			values["$WX$"] = std::to_string(msize / lx);
+			values["$WY$"] = std::to_string(msize / ly);
+			values["$A_INC$"] = std::to_string(msize * lx);
+			values["$B_INC$"] = std::to_string(lx);
 
 			for (auto& i : gen_list) {
 
@@ -270,7 +293,7 @@ int main (int argc, char** argv) {
 
 		results += "\n\nresults ( " + generic_name + "):\n";
 
-		std::string prof_results = show_profiling_data(pdata, SORT_BY_BANDW_DESC, prof_enabled, true);
+		std::string prof_results = show_profiling_data(pdata, SORT_BY_FLOPS_DESC, prof_enabled, true);
 		std::cout << "\n" << prof_results << "\n";
 		write_to_file (results_fname, prof_results, true);
 

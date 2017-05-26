@@ -1,14 +1,44 @@
-__kernel void k_gen_cl_gemm_v0_(const int N, __global float* C, __global float* A, __global float* B) {
+__kernel void k_gen_$ORDER$_$LX$_$LY$_$NX$_$NY$_$KX$_$KY$_$VER$_cl_gemm_v0_(__global float* restrict C, __global float* restrict A, __global float* restrict B) {
 
-	const int i = get_global_id(0);
-	const int j = get_global_id(1);
-	const int n = get_global_size(0);
+#if $VER$
+	// TODO: CL_KERNEL_WORK_GROUP_SIZE
+#pragma unroll $KX$
+	for (int kx = 0; kx < $KX$; kx++) {
+#pragma unroll $KY$
+		for (int ky = 0; ky < $KY$; ky++) {
 
-	float tmp = 0.0f;
+			const int i = get_global_id(0) + kx * $NX$;
+			const int j = get_global_id(1) + ky * $NY$;
 
-	for (int k = 0; k < n; k++)
-		tmp += A[k * n + j] * B[i * n + k];
+			float tmp = 0.0f;
 
-	C[i * n + j] = tmp;
+#pragma unroll $ORDER$
+			for (int k = 0; k < $ORDER$; k++)
+				tmp += A[k * $ORDER$ + j] * B[i * $ORDER$ + k];
+
+			C[i * $ORDER$ + j] = tmp;
+
+		}
+	}
+
+#else
+	// TODO: CL_KERNEL_WORK_GROUP_SIZE
+#pragma unroll $KX$
+	for (int kx = 0; kx < $KX$; kx++) {
+#pragma unroll $KY$
+		for (int ky = 0; ky < $KY$; ky++) {
+
+			const int i = get_global_id(0) + kx * $NX$;
+			const int j = get_global_id(1) + ky * $NY$;
+
+			C[i * $ORDER$ + j] = 0;
+
+#pragma unroll $ORDER$
+			for (int k = 0; k < $ORDER$; k++)
+				C[i * $ORDER$ + j] += A[k * $ORDER$ + j] * B[i * $ORDER$ + k];
+
+		}
+	}
+#endif
 
 }

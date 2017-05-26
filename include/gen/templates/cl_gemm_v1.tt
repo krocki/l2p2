@@ -2,7 +2,7 @@
 // based on https://github.com/HandsOnOpenCL/Exercises-Solutions/blob/master/Solutions/Exercise08/C_block_form.cl
 
 // k_gen_ORDER_BLKSIZE_cl_gemm
-__kernel void k_gen_$ORDER$_$BLKSZ$_cl_gemm_v1_(const int N, __global float* restrict C, const __global float* restrict A, const __global float* restrict B) {
+__kernel void k_gen_$ORDER$_$BLKSZ$_cl_gemm_v1_(__global float* restrict C, const __global float* restrict A, const __global float* restrict B) {
 
 	__local float Awrk[$BLKSZ$ * $BLKSZ$];
 	__local float Bwrk[$BLKSZ$ * $BLKSZ$];

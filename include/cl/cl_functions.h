@@ -1,16 +1,16 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-04 10:56:35
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-05-21 22:02:06
+* @Last Modified by:   Kamil Rocki
+* @Last Modified time: 2017-05-25 16:03:50
 */
 
 #ifndef __CL_FUNCTIONS__
 #define __CL_FUNCTIONS__
 
 #include <cl/cl_array.h>
-#include <utils/perf.h>
 #include <cl/cl_c_kernel.h>
+#include <utils/perf.h>
 
 #define SMALLEST -1.0e37f
 
@@ -197,10 +197,9 @@ std::string exec_cl_gemm (cl_array<float>& C, cl_array<float>& A, cl_array<float
 	assert(ngroups_x > 0);
 	assert(ngroups_y > 0);
 
-	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[kernel_op], 0, sizeof (int), (void*) &n) );
-	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[kernel_op], 1, sizeof (cl_mem), (void*) &C.ref_device_data) );
-	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[kernel_op], 2, sizeof (cl_mem), (void*) &A.ref_device_data) );
-	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[kernel_op], 3, sizeof (cl_mem), (void*) &B.ref_device_data) );
+	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[kernel_op], 0, sizeof (cl_mem), (void*) &C.ref_device_data) );
+	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[kernel_op], 1, sizeof (cl_mem), (void*) &A.ref_device_data) );
+	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[kernel_op], 2, sizeof (cl_mem), (void*) &B.ref_device_data) );
 
 	size_t global_work_size[2];
 	size_t local_work_size[2];
@@ -222,8 +221,7 @@ std::string exec_cl_gemm (cl_array<float>& C, cl_array<float>& A, cl_array<float
 	}
 
 	// /* Execute the kernel */
-	// std::cout << "1Running " << cl_config_string << std::endl;
-	// std::cout << "2Running " << kernel_op << std::endl;
+	// std::cout << "1 Running " << local_work_size[0] << "x " << local_work_size[1] << " glob " << global_work_size[0] << "x " << global_work_size[1] << ", n " << ngroups_x << ", " << ngroups_y << std::endl;
 	CL_SAFE_CALL (clEnqueueNDRangeKernel (__ctx->queue(), __ctx->cl_kernels[kernel_op], 2, NULL, global_work_size, local_work_size, 0, NULL, &__ctx->cl_events[func_string]) );
 
 	if (profiling_enabled) {

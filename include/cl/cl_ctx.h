@@ -15,7 +15,7 @@
 
 class cl_ctx {
 
-private:
+  private:
 
 	cl_platform_id platform = 0;
 
@@ -30,7 +30,7 @@ private:
 
 	std::string log = "";
 
-public:
+  public:
 
 	Dict<cl_event> cl_events;
 	Dict<cl_kernel> cl_kernels;
@@ -92,6 +92,7 @@ public:
 		log += string_format ("device_string: %s\n", current_device_properties.device_string.c_str() );
 		log += string_format ("compute_units: %u\n", current_device_properties.compute_units);
 		log += string_format ("workgroup_size: %zu\n", current_device_properties.workgroup_size);
+
 		log += string_format ("workitem_size: %zu x %zu x %zu\n",
 		                      current_device_properties.workitem_size[0],
 		                      current_device_properties.workitem_size[1],
@@ -179,6 +180,13 @@ public:
 		cl_int err;
 		cl_kernels[kernel_name] = clCreateKernel (cl_programs[program_name], kernel_name.c_str(), &err);
 
+		kernels[kernel_name].device_name = current_device_properties.device_string;
+
+		CL_SAFE_CALL(clGetKernelWorkGroupInfo (cl_kernels[kernel_name], device_in_use, CL_KERNEL_WORK_GROUP_SIZE, sizeof(kernels[kernel_name].max_wsize), &kernels[kernel_name].max_wsize, NULL));
+
+		CL_SAFE_CALL(clGetKernelWorkGroupInfo (cl_kernels[kernel_name], device_in_use, CL_KERNEL_LOCAL_MEM_SIZE, sizeof(kernels[kernel_name].lmem), &kernels[kernel_name].lmem, NULL));
+
+		printf("%s: %s, maxw %d lmem %d\n", kernel_name.c_str(), kernels[kernel_name].device_name.c_str(), kernels[kernel_name].max_wsize, kernels[kernel_name].lmem);
 		if (err != CL_SUCCESS) {
 			log += string_format ("clCreateKernel failed with %d, program: '%s', kernel '%s'\n", err, program_name.c_str(), kernel_name.c_str());
 			return -1;
