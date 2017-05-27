@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-14 20:55:55
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-24 14:09:49
+* @Last Modified time: 2017-05-26 16:58:06
 */
 
 #include <iostream>
@@ -183,8 +183,8 @@ int main (int argc, char** argv) {
 			ws_x.resize(6);
 			ws_y = {1};
 			std::generate_n(ws_x.begin(), ws_x.size(), [] { static int i {static_cast<int>(ocl.current_device_properties.compute_units)}; return i += ocl.current_device_properties.compute_units; });
-			ls_x = {8, 16, 32, 64};
-			ls_y = {1, 2, 4};
+			ls_x = {8, 16, 32, 64, 128};
+			ls_y = {1, 2};
 			vs = {1, 2, 4, 8, 16};
 			kk_iters = 128;
 

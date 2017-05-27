@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-14 20:55:55
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-25 17:08:59
+* @Last Modified time: 2017-05-26 16:44:52
 */
 
 #include <iostream>
@@ -86,11 +86,10 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize_x = 1, int
 	C.sync_host();
 	// std::cout << "C:" << std::endl;
 	// std::cout << C.ref_host_data << std::endl;
-	// std::cout << op + " = \n" << y.ref_host_data << std::endl;
 
 	array_t<T> err = (C.ref_host_data - eC);
-	//std::cout << "err:" << std::endl;
-	//std::cout << err << std::endl;
+	// std::cout << "err:" << std::endl;
+	// std::cout << err << std::endl;
 	T errmax = err.cwiseAbs().maxCoeff();
 
 	const std::string color = (errmax > 1e-3f) ? ANSI_COLOR_RED : errmax > 1e-7f ? ANSI_COLOR_YELLOW : "";
@@ -99,7 +98,7 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize_x = 1, int
 	total_runs++;
 	pdata[perf_key].errmax = errmax > pdata[perf_key].errmax ? errmax : pdata[perf_key].errmax;
 
-	if (errmax > 1e-4f) {
+	if (errmax > 1e-3f) {
 		total_errors++;
 		pdata[perf_key].errors++;
 	}
@@ -167,11 +166,11 @@ int main (int argc, char** argv) {
 		init_cl(requested_device);
 		std::cout << ocl.getlog() << std::endl;
 
-		std::vector<int> msizes = {1024};
-		std::vector<int> lxs = {1, 2, 4, 8, 16, 32};
-		std::vector<int> lys = {1, 2, 4};
-		std::vector<int> kxs = {1, 2, 4, 8, 16};
-		std::vector<int> kys = {1, 2, 4, 8, 16};
+		std::vector<int> msizes = {256};
+		std::vector<int> lxs = {4, 8, 16};
+		std::vector<int> lys = {1};
+		std::vector<int> wxs = {1};
+		std::vector<int> wys = {1};
 		std::vector<int> versions = {0, 1};
 
 		int kk_iters;
@@ -188,7 +187,7 @@ int main (int argc, char** argv) {
 
 		}
 
-		auto configurations = generate_configurations(RANDOM_SHUFFLE, msizes, lxs, lys, kxs, kys, versions);
+		auto configurations = generate_configurations(RANDOM_SHUFFLE, msizes, lxs, lys, wxs, wys, versions);
 
 		long double top_gb = 0;
 		std::string conf_str_gb = "";
@@ -208,20 +207,18 @@ int main (int argc, char** argv) {
 			int lx = std::get<1>(config);
 			std::cout << "m = " << msize << " x " << msize << std::endl;
 			//int lx = blksz * blksz;
-			int ly = std::get<2>(config);
+			int ly = lx;//std::get<2>(config);
 			std::cout << "lx = " << lx << " x " << ly << std::endl;
 			int wx_reqd = msize / lx;
 			int wy_reqd = msize / ly;
 			std::cout << "wx_reqd = " << wx_reqd << " x " << wy_reqd << std::endl;
-			int KX = std::get<3>(config);
-			int KY = std::get<4>(config);
+			int wx = wx_reqd;
+			int wy = wy_reqd;
 			int ver = std::get<5>(config);
-			std::cout << "K = " << KX << " x " << KY << std::endl;
-			int wx = wx_reqd / KX;
-			int wy = wy_reqd / KY;
 			std::cout << "w = " << wx << " x " << wy << std::endl;
 			int g = lx * wx * ly * wy;
 			std::cout << "g: " << g << std::endl;
+			std::cout << "nblk = " << wx_reqd / wx << " x " << wx_reqd / wx << std::endl;
 			int v = 1;
 
 			Dict<var_t> values;
@@ -229,15 +226,12 @@ int main (int argc, char** argv) {
 			//gemm
 			values["$ORDER$"] = std::to_string(msize);
 
-			values["$KX$"] = std::to_string(KX);
-			values["$KY$"] = std::to_string(KY);
-			values["$NX$"] = std::to_string(wx * lx);
-			values["$NY$"] = std::to_string(wy * ly);
 			values["$VER$"] = std::to_string(ver);
 			values["$LX$"] = std::to_string(lx);
 			values["$LY$"] = std::to_string(ly);
-			values["$WX$"] = std::to_string(msize / lx);
-			values["$WY$"] = std::to_string(msize / ly);
+			values["$WX$"] = std::to_string(wx);
+			values["$WY$"] = std::to_string(wy);
+			values["$NUM_BLK$"] = std::to_string(msize / lx);
 			values["$A_INC$"] = std::to_string(msize * lx);
 			values["$B_INC$"] = std::to_string(lx);
 

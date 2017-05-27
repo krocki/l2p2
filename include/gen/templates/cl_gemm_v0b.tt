@@ -1,0 +1,54 @@
+__kernel void k_gen_$ORDER$_$LX$_$LY$_$WX$_$WY$_cl_gemm_v0b_(__global float* restrict C, const __global float* restrict A, const __global float* restrict B) {
+
+	__local float Awrk[$LX$ * $LX$];
+	__local float Bwrk[$LX$ * $LX$];
+
+	const int i = get_global_id(0);
+	const int j = get_global_id(1);
+
+	// Element C(i,j) is in block C(Iblk,Jblk)
+	const int Iblk = get_group_id(0);
+	const int Jblk = get_group_id(1);
+
+	// C(i,j) is element C(iloc, jloc) of block C(Iblk, Jblk)
+	const int iloc = get_local_id(0);
+	const int jloc = get_local_id(1);
+
+	// Setup the upper-left-corner (base address) for the A and
+	// B blocks plus the increments to advance base addresses as
+	// we loop over blocks
+	int Abase = Jblk * $LX$;
+	int Bbase = Iblk * $ORDER$ * $LX$;
+
+	float Ctmp = 0.0f;
+
+	// C(Iblk,Jblk) = (sum over Kblk) A(Iblk,Kblk)*B(Kblk,Jblk)
+#pragma unroll $NUM_BLK$
+	for (int Kblk = 0;  Kblk < $NUM_BLK$;  Kblk++) {
+
+		//printf("gid %d %d wid %d %d, %d %d\n", i, j, Iblk, Jblk, Abase, Bbase);
+
+		// Load A(Iblk,Kblk) and B(Kblk,Jblk) into local memory.
+		// Each work-item loads a single element of the two blocks
+		// which are shared with the entire work-group.
+
+		Awrk[iloc * $LX$ + jloc] = A[Abase + iloc * $ORDER$ + jloc];
+		Bwrk[iloc * $LX$ + jloc] = B[Bbase + iloc * $ORDER$ + jloc];
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		// Compute dot products over local blocks to find
+		// the contribution to C(i,j) from this block
+#pragma unroll $LX$
+		for (int kloc = 0; kloc < $LX$; kloc++)
+			Ctmp += Awrk[kloc * $LX$ + jloc] * Bwrk[iloc * $LX$ + kloc];
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+		Abase += $A_INC$;
+		Bbase += $B_INC$;
+	}
+
+	// update global C matrix
+	C[i * $ORDER$ + j] = Ctmp;
+
+}

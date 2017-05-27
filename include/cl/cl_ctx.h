@@ -186,7 +186,7 @@ class cl_ctx {
 
 		CL_SAFE_CALL(clGetKernelWorkGroupInfo (cl_kernels[kernel_name], device_in_use, CL_KERNEL_LOCAL_MEM_SIZE, sizeof(kernels[kernel_name].lmem), &kernels[kernel_name].lmem, NULL));
 
-		printf("%s: %s, maxw %d lmem %d\n", kernel_name.c_str(), kernels[kernel_name].device_name.c_str(), kernels[kernel_name].max_wsize, kernels[kernel_name].lmem);
+		// printf("%s: %s, maxw %d lmem %d\n", kernel_name.c_str(), kernels[kernel_name].device_name.c_str(), kernels[kernel_name].max_wsize, kernels[kernel_name].lmem);
 		if (err != CL_SUCCESS) {
 			log += string_format ("clCreateKernel failed with %d, program: '%s', kernel '%s'\n", err, program_name.c_str(), kernel_name.c_str());
 			return -1;

@@ -1,0 +1,22 @@
+__kernel void k_gen_$ORDER$_$LX$_$LY$_$NX$_$NY$_$KX$_$KY$_$VER$_cl_gemm_v0a_(__global float* restrict C, __global float* restrict A, __global float* restrict B) {
+
+#pragma unroll $KX$
+	for (int kx = 0; kx < $KX$; kx++) {
+#pragma unroll $KY$
+		for (int ky = 0; ky < $KY$; ky++) {
+
+			const int i = $KX$ * get_global_id(0) + kx;
+			const int j = $KY$ * get_global_id(1) + ky;
+
+			float tmp = 0.0f;
+
+#pragma unroll $ORDER$
+			for (int k = 0; k < $ORDER$; k++)
+				tmp += A[k * $ORDER$ + j] * B[i * $ORDER$ + k];
+
+			C[i * $ORDER$ + j] = tmp;
+
+		}
+	}
+
+}
