@@ -1,9 +1,9 @@
 
 __kernel void k_gen_cl_gemm_v0(
-	const int N,
-	__global float* A,
-	__global float* B,
-	__global float* C) {
+    const int N,
+    __global float* A,
+    __global float* B,
+    __global float* C) {
 	int k;
 	int i = get_global_id(0);
 	int j = get_global_id(1);

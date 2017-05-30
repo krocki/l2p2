@@ -1,0 +1,26 @@
+#if $H$ > 0
+__attribute__((vec_type_hint($TV$)))
+#endif
+
+#define IDX(m, y, x, w) (m)[ (y) * (w) + (x)]
+
+// N_LX_LY_WX_WY_G_TV H_TRANS
+__kernel void k_gen_$N$_$LX$_$LY$_$WX$_$WY$_$G$_$TV$_$H$_$TRANS$_cl_map_gmem_2ds_$FUNCNAME$ (
+    __global $TV$ * restrict out,
+    __global const $TV$ * restrict in) {
+
+	int w = get_global_size(0);
+
+	// normal
+	// int i = get_global_id(0);
+	// int j = get_global_id(1);
+
+	// staggered
+	int gr_j = get_group_id(1);
+	int gr_i = (get_group_id(0) + get_group_id(1)) % $WX$;
+	int i = gr_i * get_local_size(0) + get_local_id(0);
+	int j = gr_j * get_local_size(1) + get_local_id(1);
+
+	IDX(out, j, i, w) = IDX(in, j, i, w);
+
+}

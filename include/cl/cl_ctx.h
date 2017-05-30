@@ -47,6 +47,7 @@ class cl_ctx {
 	bool profiling_enabled = true;
 	bool ooo_exec_enabled = false;
 	bool zero_copy_mem = false;
+	bool use_fast_math = true;
 
 	cl_mem_flags device_mem_alloc_flags = CL_MEM_READ_WRITE;
 
@@ -92,7 +93,6 @@ class cl_ctx {
 		log += string_format ("device_string: %s\n", current_device_properties.device_string.c_str() );
 		log += string_format ("compute_units: %u\n", current_device_properties.compute_units);
 		log += string_format ("workgroup_size: %zu\n", current_device_properties.workgroup_size);
-
 		log += string_format ("workitem_size: %zu x %zu x %zu\n",
 		                      current_device_properties.workitem_size[0],
 		                      current_device_properties.workitem_size[1],
@@ -137,6 +137,9 @@ class cl_ctx {
 		init_cl_libs();
 
 		_initialized = true;
+
+		log += "fast math = " + use_fast_math + std::string("\n");
+
 		return 0;
 	}
 
@@ -148,8 +151,13 @@ class cl_ctx {
 
 		//platform dependent flags
 		if (!is_intel(current_device_properties)) {
-			all_flags += "-cl-strict-aliasing"; //intel doesn't recognize this
+			all_flags += " -cl-strict-aliasing"; //intel doesn't recognize this
 		}
+
+		if (use_fast_math)
+			all_flags += " -cl-fast-relaxed-math -cl-mad-enable";
+
+		log += all_flags + std::string("\n");
 
 		cl_programs[program_name] = clUtils::compileProgram (fname, _ctx, device_in_use, all_flags.c_str());
 
@@ -180,13 +188,6 @@ class cl_ctx {
 		cl_int err;
 		cl_kernels[kernel_name] = clCreateKernel (cl_programs[program_name], kernel_name.c_str(), &err);
 
-		kernels[kernel_name].device_name = current_device_properties.device_string;
-
-		CL_SAFE_CALL(clGetKernelWorkGroupInfo (cl_kernels[kernel_name], device_in_use, CL_KERNEL_WORK_GROUP_SIZE, sizeof(kernels[kernel_name].max_wsize), &kernels[kernel_name].max_wsize, NULL));
-
-		CL_SAFE_CALL(clGetKernelWorkGroupInfo (cl_kernels[kernel_name], device_in_use, CL_KERNEL_LOCAL_MEM_SIZE, sizeof(kernels[kernel_name].lmem), &kernels[kernel_name].lmem, NULL));
-
-		// printf("%s: %s, maxw %d lmem %d\n", kernel_name.c_str(), kernels[kernel_name].device_name.c_str(), kernels[kernel_name].max_wsize, kernels[kernel_name].lmem);
 		if (err != CL_SUCCESS) {
 			log += string_format ("clCreateKernel failed with %d, program: '%s', kernel '%s'\n", err, program_name.c_str(), kernel_name.c_str());
 			return -1;

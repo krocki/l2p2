@@ -7,20 +7,20 @@ __kernel void k_gen_$N$_$LX$_$LY$_$WX$_$WY$_$G$_$TV$_$H$_$TRANS$_cl_permute_gmem
     __global const int * restrict idxs,
     __global const $TV$ * restrict in) {
 
-	#if $TRANS$
-		int gid = get_global_id(1) * get_global_size(0) + get_global_id(0);
-	#else
-		int gid = get_global_id(0) * get_global_size(1) + get_global_id(1);
-	#endif
+#if $TRANS$
+	int gid = get_global_id(1) * get_global_size(0) + get_global_id(0);
+#else
+	int gid = get_global_id(0) * get_global_size(1) + get_global_id(1);
+#endif
 
 	// in - size M
 	// idxs - size N
 	// out - size N
 
 //#if PULL
-out[gid] = in[idxs[gid]];
+	out[gid] = in[idxs[gid]];
 //#endif
 //#if PUSH
-out[idxs[gid]] = in[gid];
+	out[idxs[gid]] = in[gid];
 //#endif
 }

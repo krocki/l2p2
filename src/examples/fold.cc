@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-03 20:44:37
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-05-04 14:16:18
+* @Last Modified by:   Kamil Rocki
+* @Last Modified time: 2017-05-30 16:34:03
 */
 
 #include <iostream>

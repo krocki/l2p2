@@ -1,8 +1,8 @@
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-05-11 11:49:22
-* @Last Modified by:   krocki
-* @Last Modified time: 2017-05-13 18:34:36
+* @Last Modified by:   Kamil Rocki
+* @Last Modified time: 2017-05-30 16:37:41
 */
 
 #include <iostream>

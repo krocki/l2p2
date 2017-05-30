@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-14 20:55:55
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-26 16:58:06
+* @Last Modified time: 2017-05-30 16:34:48
 */
 
 #include <iostream>
@@ -159,6 +159,7 @@ int main (int argc, char** argv) {
 		std::vector<int> ls_x, ls_y;
 		std::vector<int> ws_x, ws_y;
 		std::vector<int> vs = {};
+		std::vector<int> dims = {1, 2};
 		std::vector<int> hs = {0, 1}; //__attribute__((vec_type_hint(T)))
 		std::vector<int> us = {0, 1};
 		int kk_iters;
@@ -169,12 +170,12 @@ int main (int argc, char** argv) {
 
 			std::cout << "CPU" << std::endl;
 			//std::generate_n(rs.begin(), rs.size(), [] { static int i {1 << 22}; return i <<= 2; });
-			ws_x = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12};
-			ls_x = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12};
+			ws_x = {1, 2, 4, 6, 8, 12};
+			ls_x = {1, 2, 4, 8, 16, 32};
 			ws_y = {1};
 			ls_y = {1};
 			vs = {1, 2, 4, 8, 16};
-			kk_iters = 128;
+			kk_iters = 512;
 
 		} else {
 
@@ -183,14 +184,14 @@ int main (int argc, char** argv) {
 			ws_x.resize(6);
 			ws_y = {1};
 			std::generate_n(ws_x.begin(), ws_x.size(), [] { static int i {static_cast<int>(ocl.current_device_properties.compute_units)}; return i += ocl.current_device_properties.compute_units; });
-			ls_x = {8, 16, 32, 64, 128};
-			ls_y = {1, 2};
+			ls_x = {8, 16, 32, 64, 128, 256};
+			ls_y = {1};
 			vs = {1, 2, 4, 8, 16};
-			kk_iters = 128;
+			kk_iters = 512;
 
 		}
 
-		auto configurations = generate_configurations(RANDOM_SHUFFLE, rs, cs, ls_x, ls_y, ws_x, ws_y, vs, hs, us);
+		auto configurations = generate_configurations(RANDOM_SHUFFLE, rs, cs, ls_x, ls_y, ws_x, ws_y, vs, hs, us, dims);
 
 		long double top_gb = 0;
 		std::string conf_str_gb = "";
@@ -215,13 +216,27 @@ int main (int argc, char** argv) {
 			int v = std::get<6>(config);
 			int h = std::get<7>(config);
 			int u = std::get<8>(config);
+			int dim = std::get<9>(config);
+
 			int g = lx * wx * ly * wy;
 			int n = round_up_multiple(r * c, g * v); // round up to the nearest multiple of a block of threads
 			assert (n % (g * v) == 0);
 
 			int iters = n / (g * v); // need exactly iters iterations
-			// new
-			wy = iters;
+
+			if (dim == 2) { // 2D
+
+				wy = iters;
+
+			} else {
+
+				// 1D
+				wx = iters * wx;
+				wy = 1;
+			}
+
+			std::get<4>(config) = wx;
+			std::get<5>(config) = wy;
 
 			Dict<var_t> values, f_values;
 			values["$N$"] = std::to_string(n);
@@ -297,7 +312,7 @@ int main (int argc, char** argv) {
 
 		results += "\n\nresults ( " + generic_name + "):\n";
 
-		std::string prof_results = show_profiling_data(pdata, SORT_BY_BANDW_DESC, prof_enabled, true);
+		std::string prof_results = show_profiling_data(pdata, SORT_BY_BANDW, prof_enabled, true);
 		std::cout << "\n" << prof_results << "\n";
 		write_to_file (results_fname, prof_results, true);
 

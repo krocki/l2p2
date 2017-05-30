@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-11 12:21:24
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-12 16:44:45
+* @Last Modified time: 2017-05-30 16:37:55
 */
 
 #include <gen/defs.h>
@@ -37,7 +37,7 @@ code_t k_fmap(F f, M m) {
 	body += "} " + comment(code_t(__FUNCTION__)) + "\n";
 
 	std::vector<std::string> vars = get_vars(body, "@");
-	
+
 	body += "vars\n";
 
 	for (auto& v : vars) {

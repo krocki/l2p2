@@ -1,17 +1,44 @@
 #if $H$ > 0
 __attribute__((vec_type_hint($TV$)))
 #endif
+
+#define LOAD1(s,i) ((__global const float*) (s)) [(size_t)(i)]
+#define STORE1(s,i,v) ((__global float*) (s))[(size_t)(i)] = (v)
+
+#define LOAD2(s,i) vload2((size_t)(i), (__global const float*) (s))
+#define STORE2(s,i,v) vstore2((v), (size_t)(i), (__global float*) (s))
+
+#define LOAD4(s,i) vload4((size_t)(i), (__global const float*) (s))
+#define STORE4(s,i,v) vstore4((v), (size_t)(i), (__global float*) (s))
+
+#define LOAD8(s,i) vload8((size_t)(i), (__global const float*) (s))
+#define STORE8(s,i,v) vstore8((v), (size_t)(i), (__global float*) (s))
+
+#define LOAD16(s,i) vload16((size_t)(i), (__global const float*) (s))
+#define STORE16(s,i,v) vstore16((v), (size_t)(i), (__global float*) (s))
+
+
 // N_LX_LY_WX_WY_G_TV H_TRANS
 __kernel void k_gen_$N$_$LX$_$LY$_$WX$_$WY$_$G$_$TV$_$H$_$TRANS$_cl_map_gmem_2d_$FUNCNAME$ (
     __global $TV$ * restrict out,
     __global const $TV$ * restrict in) {
 
-	#if $TRANS$
-		int gid = get_global_id(1) * get_global_size(0) + get_global_id(0);
-	#else
-		int gid = get_global_id(0) * get_global_size(1) + get_global_id(1);
-	#endif
+#if $WY$ == 1
+	// 1D
+	int gid = get_global_id(0);
+#else
+	// 2D
+#if $TRANS$
+	int gid = get_global_id(1) * get_global_size(0) + get_global_id(0);
+#else
+	int gid = get_global_id(0) * get_global_size(1) + get_global_id(1);
+#endif
+#endif
 
+	// seems slower
+	// $TV$ tmp;
+	// tmp = LOAD$V$(in, gid);
+	// STORE$V$(out, gid, tmp);
 	$FUNC$
 
 }

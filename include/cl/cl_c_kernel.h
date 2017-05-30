@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-05-15 09:55:43
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-25 14:13:17
+* @Last Modified time: 2017-05-30 16:39:10
 */
 
 #include <string>
@@ -22,10 +22,6 @@ class compute_kernel {
 	long double flops = 0.0;
 	long double bytes_in = 0.0;
 	long double bytes_out = 0.0;
-
-	std::string device_name = "";
-	size_t max_wsize; // max number of workgroup for this kernel & device
-	size_t lmem; // required lmem size
 
 };
 

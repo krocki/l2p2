@@ -26,7 +26,7 @@ unsigned long cl_mem_allocated = 0L;
 template <typename T = float>
 class cl_array {
 
-public:
+  public:
 
 	cl_mem device_data;
 	cl_mem& ref_device_data;

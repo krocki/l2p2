@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-05-04 08:51:00
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-05-25 14:02:56
+* @Last Modified time: 2017-05-30 16:38:49
 */
 
 /* Various helpers used for managing CL code compilation, etc... */
@@ -553,7 +553,7 @@ cl_program clUtils::compileProgram (const char* const kernel_file, cl_context cx
 		    Build program
 		*/
 		char clcompileflags[1024];
-		sprintf (clcompileflags, "-cl-fast-relaxed-math -cl-mad-enable %s", flags);
+		sprintf (clcompileflags, "%s", flags);
 		//sprintf ( clcompileflags, "-cl-mad-enable" );
 		ciErrNum = clBuildProgram (cpProgram, 0, NULL, clcompileflags, NULL, NULL);
 		clUtils::checkError (ciErrNum, "clBuildProgram");
