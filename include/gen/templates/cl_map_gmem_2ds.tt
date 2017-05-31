@@ -2,7 +2,13 @@
 __attribute__((vec_type_hint($TV$)))
 #endif
 
-#define IDX(m, y, x, w) (m)[ (y) * (w) + (x)]
+// x,y - 2d coords, w - # of cols/rows
+#define IDX2(m, y, x, w) (m)[ (y) * (w) + (x)]
+// x,y,z - 3d coords, w - # of cols/rows (x, y), d - depth (z)
+#define IDX3(m, z, y, x, w, d) (m)[(z) + (d) * (x) + (y) * (w) * (z)]
+// int matrix3D_lookup(int x, int y, int z, int sizeZ, int sizeX){
+//        return          z+ sizeZ*x +(sizeZ*sizeX*y);
+// }
 
 // N_LX_LY_WX_WY_G_TV H_TRANS
 __kernel void k_gen_$N$_$LX$_$LY$_$WX$_$WY$_$G$_$TV$_$H$_$TRANS$_cl_map_gmem_2ds_$FUNCNAME$ (
@@ -21,6 +27,6 @@ __kernel void k_gen_$N$_$LX$_$LY$_$WX$_$WY$_$G$_$TV$_$H$_$TRANS$_cl_map_gmem_2ds
 	int i = gr_i * get_local_size(0) + get_local_id(0);
 	int j = gr_j * get_local_size(1) + get_local_id(1);
 
-	IDX(out, j, i, w) = IDX(in, j, i, w);
+	IDX2(out, j, i, w) = IDX2(in, j, i, w);
 
 }

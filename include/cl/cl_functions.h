@@ -197,10 +197,9 @@ std::string exec_cl_gemm (cl_array<float>& C, cl_array<float>& A, cl_array<float
 	assert(ngroups_x > 0);
 	assert(ngroups_y > 0);
 
-	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[kernel_op], 0, sizeof (int), (void*) &n) );
-	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[kernel_op], 1, sizeof (cl_mem), (void*) &C.ref_device_data) );
-	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[kernel_op], 2, sizeof (cl_mem), (void*) &A.ref_device_data) );
-	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[kernel_op], 3, sizeof (cl_mem), (void*) &B.ref_device_data) );
+	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[kernel_op], 0, sizeof (cl_mem), (void*) &C.ref_device_data) );
+	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[kernel_op], 1, sizeof (cl_mem), (void*) &A.ref_device_data) );
+	CL_SAFE_CALL (clSetKernelArg (__ctx->cl_kernels[kernel_op], 2, sizeof (cl_mem), (void*) &B.ref_device_data) );
 
 	size_t global_work_size[2];
 	size_t local_work_size[2];

@@ -139,7 +139,7 @@ int main (int argc, char** argv) {
 
 		} else {
 
-			printf("usage: %s <d> <t> <f> [outpath] [iters] [size] [fastmath]\nexamples:\n\t%s 1 \"cl_map_gmem_2d\" \"fmads\"\n\t%s 2 \"cl_map_gmem_2d\" \"copy\"\n\t%s 4 \"cl_map_gmem_2d\" \"fmads\" \"../kernels/generated/src/\" 20 24\n", argv[0], argv[0], argv[0], argv[0]);
+			printf("usage: %s <d> <t> <f> [outpath] [iters] [size] [fastmath] [msize] [blksz]\nexamples:\n\t%s 1 \"cl_map_gmem_2d\" \"fmads\"\n\t%s 2 \"cl_map_gmem_2d\" \"copy\"\n\t%s 4 \"cl_map_gmem_2d\" \"fmads\" \"../kernels/generated/src/\" 20 24\n", argv[0], argv[0], argv[0], argv[0]);
 			return -1;
 
 		}
@@ -149,12 +149,18 @@ int main (int argc, char** argv) {
 
 		if (argc > 4) { outpath = std::string(argv[4]); }
 
-		int bench_iters = 100;
+		int bench_iters = 4;
 		int psize = 5;
 
 		if (argc > 5) { bench_iters = std::stoi(argv[5]); }
 		if (argc > 6) { psize = std::stoi(argv[6]); }
 		if (argc > 7) { ocl.use_fast_math = std::atoi(argv[7]); }
+
+		int msize = 256;
+		int blksz = 16;
+
+		if (argc > 8) { msize = std::atoi(argv[8]); }
+		if (argc > 9) { blksz = std::atoi(argv[9]); }
 
 		std::string debug_fname = "debug_" + generic_name + "_" + func_name + ".txt";
 		std::string results_fname = "bench_" + generic_name + "_" + func_name + ".txt";
@@ -169,8 +175,6 @@ int main (int argc, char** argv) {
 		std::cout << "fastmath = " << ocl.use_fast_math << "; ";
 		init_cl(requested_device);
 
-#define blksz 16
-#define msize 512
 
 		std::vector<int> rs = {msize};
 		std::vector<int> cs = {msize};
@@ -182,7 +186,6 @@ int main (int argc, char** argv) {
 		int kk_iters;
 
 		std::cout << ocl.current_device_properties.device_string + " : " + ocl.current_device_properties.vendor_str + " ";
-
 
 
 		if (is_cpu(ocl.current_device_properties)) {
@@ -240,6 +243,7 @@ int main (int argc, char** argv) {
 			//wy = iters;
 
 			Dict<var_t> values, f_values;
+			values["$ORDER$"] = std::to_string(msize);
 			values["$N$"] = std::to_string(n);
 			assert (n % v == 0);
 			values["$S$"] = std::to_string(n / v);
@@ -247,8 +251,12 @@ int main (int argc, char** argv) {
 			values["$LX$"] = std::to_string(lx);
 			values["$LY$"] = std::to_string(ly);
 			values["$G$"] = std::to_string(g);
-			values["$WX$"] = std::to_string(wx);
-			values["$WY$"] = std::to_string(wy);
+			values["$WX$"] = std::to_string(msize / lx);
+			values["$BLKSZ$"] = std::to_string(blksz);
+			values["$NUM_BLK$"] = std::to_string(msize / blksz);
+			values["$WY$"] = std::to_string(msize / ly);
+			values["$A_INC$"] = std::to_string(msize * lx);
+			values["$B_INC$"] = std::to_string(lx);
 			values["$TRANS$"] = std::to_string(u);
 			values["$T$"] = t;
 
@@ -295,7 +303,13 @@ int main (int argc, char** argv) {
 				if (GBs > top_gb) { top_gb = GBs; conf_str_gb = i + std::string("  ") + pretty_print(config);}
 				if (GFs > top_gf) { top_gf = GFs; conf_str_gf = i + std::string("  ") + pretty_print(config);}
 
-				os << std::setw(5) << std::to_string(++count) << "/" + std::to_string(configurations.size() * gen_list.size()) << "   " << pretty_print(config) << std::setw(20) << centered(to_string_with_precision (GBs, 8, 2) + " GB/s ") << std::setw(10) << centered(to_string_with_precision (GFs, 8, 2) + " GF/s ") << " ERR " << std::setw(15) << centered(std::to_string(total_errors)) << " " << std::setw(20) << "#1 GB/s = " << std::setw(15) << to_string_with_precision (top_gb, 8, 2)  + " (" + conf_str_gb + ")" << std::setw(20) << "  #1 GF/s = "  << std::setw(10) << to_string_with_precision (top_gf, 8, 2) + " (" + conf_str_gf + ")" << "\n";
+				os << std::setw(5) << std::to_string(++count) << "/" + std::to_string(configurations.size() * gen_list.size()) << "   ";
+				// << pretty_print(config) << std::setw(20) 
+				os << centered(to_string_with_precision (GBs, 8, 2) + " GB/s ") << std::setw(10) << centered(to_string_with_precision (GFs, 8, 2) + " GF/s ") << " ERR " << std::setw(5) << centered(std::to_string(total_errors)) << " " << std::setw(10) << "#1 GB/s = " << std::setw(10) << to_string_with_precision (top_gb, 8, 2);
+				//  + " (" + conf_str_gb + ")" << std::setw(20) 
+				std::cout << "  #1 GF/s = "  << std::setw(10) << to_string_with_precision (top_gf, 8, 2);
+				// + " (" + conf_str_gf + ")" << 
+				std::cout << "\n";
 
 				results += os.str();
 				std::cout << os.str();

@@ -214,6 +214,18 @@ int cl_alloc_from_matrix (cl_ctx* clctx, cl_mem& buffer, array_t<T>& h, size_t p
 
 		cl_int err;
 		buffer = clCreateBuffer (clctx->ctx(), flags, alloc_size, NULL, &err);
+		
+		// cl_image_format format;             // structure to define image format
+		// cl_image_desc desc;  
+		// format.image_channel_data_type = CL_FLOAT;
+  //       format.image_channel_order = CL_LUMINANCE;
+  //       memset( &desc, 0, sizeof( desc ) ); 
+  //       desc.image_type = CL_MEM_OBJECT_IMAGE2D; 
+  //       desc.image_width = h.cols();
+  //       desc.image_height = h.rows();
+
+		// buffer = clCreateImage (clctx->ctx(), CL_MEM_READ_WRITE, &format, &desc, NULL, &err);
+
 		if (clUtils::checkError(err, "cl_alloc_from_matrix: clCreateBuffer") != 0) return err;
 
 	} else fprintf (stderr, "alloc_matrix: alloc_size <= 0!\n");
@@ -238,18 +250,19 @@ int cl_copy_matrix_to_device (cl_ctx* ctx, cl_mem device_data, array_t<T>& src) 
 	size_t bytes = src.rows() * src.cols() * sizeof (T);
 	std::string event_string = "cl_copy_matrix_to_device";
 
-	//std::cout << "cl_copy_matrix_to_device " << bytes <<  std::endl;
-
-	//if (ctx->profiling_enabled) clFinish (ctx->queue() );
-
-	//if (ctx->zero_copy_mem) {
-
-	//CL_SAFE_CALL (clEnqueueUnMapBuffer());, flags: CL_MAP_READ
-
-	//} else {
 	CL_SAFE_CALL (clEnqueueWriteBuffer (ctx->queue(), device_data, CL_TRUE, 0, bytes, src.data(), 0, NULL, &ctx->cl_events[event_string]) );
-	//}
-	// if ( (!ctx->asynchronous || wait) || ctx->profiling_enabled) ctx->get_profiling_data (event_string);
+
+// cl_int clEnqueueWriteImage (	cl_command_queue command_queue,
+//  	cl_mem image,
+//  	cl_bool blocking_write,
+//  	const size_t origin[3],
+//  	const size_t region[3],
+//  	size_t input_row_pitch,
+//  	size_t input_slice_pitch,
+//  	const void * ptr,
+//  	cl_uint num_events_in_wait_list,
+//  	const cl_event *event_wait_list,
+//  	cl_event *event)
 
 	return 0;
 }
@@ -263,15 +276,21 @@ int cl_copy_matrix_to_host (cl_ctx* ctx, array_t<T>& dst, cl_mem device_data) {
 
 	size_t bytes = dst.rows() * dst.cols() * sizeof (T);
 
-	//std::cout << "cl_copy_matrix_to_host " << bytes <<  std::endl;
-	//if (ctx->zero_copy_mem) {
 
-	//CL_SAFE_CALL (clEnqueueMapBuffer());, flags: CL_MAP_READ
-
-	//} else {
 	CL_SAFE_CALL (clEnqueueReadBuffer (ctx->queue(), device_data, CL_TRUE, 0, bytes, dst.data(), 0, NULL, NULL) );
-	//}
-	//if (ctx->profiling_enabled) clFinish (ctx->queue() );
+	
+	//CL_SAFE_CALL (clEnqueueReadImage (ctx->queue(), device_data, CL_TRUE, 0, bytes, dst.data(), 0, NULL, NULL) );
+// cl_int clEnqueueReadImage (	cl_command_queue command_queue,
+//  	cl_mem image,
+//  	cl_bool blocking_read,
+//  	const size_t origin[3],
+//  	const size_t region[3],
+//  	size_t row_pitch,
+//  	size_t slice_pitch,
+//  	void *ptr,
+//  	cl_uint num_events_in_wait_list,
+//  	const cl_event *event_wait_list,
+//  	cl_event *event)
 
 	return 0;
 }

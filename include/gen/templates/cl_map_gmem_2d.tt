@@ -17,6 +17,27 @@ __attribute__((vec_type_hint($TV$)))
 #define LOAD16(s,i) vload16((size_t)(i), (__global const float*) (s))
 #define STORE16(s,i,v) vstore16((v), (size_t)(i), (__global float*) (s))
 
+/* __constant sampler_t Sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
+__kernel void Alpha( __read_write image2d_t inputImage1, __read_only image2d_t inputImage2, uint width, uint height, float alpha)
+{
+    float4 mixedImage = (0,0,0,0); 
+    float4 currentPixelImage1 = (float4)(0,0,0,0); 
+    float4 currentPixelImage2 = (float4)(0,0,0,0); 
+    float4 calculatedPixel = (float4)(0,0,0,0); 
+    float beta = 1 - alpha;
+
+    int2 coordinates = (int2)(get_global_id(0), get_global_id(1)); 
+
+    //read images into float4              
+    currentPixelImage1 = read_imagef(inputImage1, coordinates); 
+    currentPixelImage2 = read_imagef(inputImage2, coordinates); 
+
+    //Combine the image based on the a weighted distribution
+    calculatedPixel = ((currentPixelImage1 * alpha) + (currentPixelImage2 * beta) ); 
+
+    //Write the image to the output
+    write_imagef(inputImage1, coordinates, calculatedPixel );
+}*/
 
 // N_LX_LY_WX_WY_G_TV H_TRANS
 __kernel void k_gen_$N$_$LX$_$LY$_$WX$_$WY$_$G$_$TV$_$H$_$TRANS$_cl_map_gmem_2d_$FUNCNAME$ (
