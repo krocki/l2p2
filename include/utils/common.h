@@ -91,6 +91,8 @@ std::string return_current_time_and_date (const char* format = "%x %X") {
 	auto now = std::chrono::system_clock::now();
 	auto in_time_t = std::chrono::system_clock::to_time_t (now);
 	std::stringstream ss;
+	auto duration = now.time_since_epoch();
+	auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
 	ss << std::put_time (std::localtime (&in_time_t), format);
 	return ss.str();
 }

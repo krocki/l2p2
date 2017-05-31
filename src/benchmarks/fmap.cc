@@ -15,6 +15,7 @@
 #include <cl/cl_array.h>
 #include <cl/cl_functions.h>
 #include <utils/perf.h>
+#include <utils/configs.h>
 
 #include <gen/generate_tt.h>
 #include <gen/parse.h>
@@ -94,20 +95,6 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize_x = 1, int
 
 	return 0;
 
-}
-
-typedef enum {IN_ORDER = 0, RANDOM_SHUFFLE = 1} ITEM_ORDER;
-
-template <typename ...T>
-auto generate_configurations(ITEM_ORDER ord, std::vector<T>& ...is) {
-
-	auto confs = cross(is...);
-	if (ord == RANDOM_SHUFFLE) {
-		std::cout << "ord = RANDOM_SHUFFLE" << std::endl;
-		std::srand ( unsigned ( std::time(0) ) );
-		std::shuffle ( confs.begin(), confs.end(), std::mt19937{std::random_device{}()});
-	}
-	return confs;
 }
 
 int main (int argc, char** argv) {
