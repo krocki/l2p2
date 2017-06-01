@@ -50,10 +50,10 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize_x = 1, int
 	eA.setRandom();
 	eB.setRandom();
 
-	// std::cout << "eA:" << std::endl;
-	// std::cout << eA << std::endl;
-	// std::cout << "eB:" << std::endl;
-	// std::cout << eB << std::endl;
+	std::cout << "eA:" << std::endl;
+	std::cout << eA << std::endl;
+	std::cout << "eB:" << std::endl;
+	std::cout << eB << std::endl;
 	// make an opencl copy of the eigen array
 	size_t padding = lsize_x * ngroups_x * lsize_y * ngroups_y * vecn;
 	//std::cout << "padding: " << lsize << ", " << ngroups << ", " << vecn << ", = " << padding << std::endl;
@@ -64,8 +64,8 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize_x = 1, int
 
 	_TIMED_CALL_(eC = eA * eB,  "h_gemm" + string_format ("_r%zu_c%zu", rows, cols));
 
-	// std::cout << "eC:" << std::endl;
-	// std::cout << eC << std::endl;
+	std::cout << "eC:" << std::endl;
+	std::cout << eC << std::endl;
 
 	// copy host_data to device
 	A.sync_device();
@@ -84,9 +84,8 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize_x = 1, int
 
 	// copy device data to host
 	C.sync_host();
-	//std::cout << "C:" << std::endl;
-	//std::cout << C.ref_host_data << std::endl;
-	// std::cout << op + " = \n" << y.ref_host_data << std::endl;
+	std::cout << "C:" << std::endl;
+	std::cout << C.ref_host_data << std::endl;
 
 	array_t<T> err = (C.ref_host_data - eC);
 	//std::cout << "err:" << std::endl;
@@ -192,19 +191,19 @@ int main (int argc, char** argv) {
 
 			std::cout << "CPU" << std::endl;
 			//std::generate_n(rs.begin(), rs.size(), [] { static int i {1 << 22}; return i <<= 2; });
-			ws_x = {msize / blksz};
-			ls_x = {blksz};
-			ws_y = {msize / blksz};
-			ls_y = {blksz};
+			ws_x = {(msize*msize) / (blksz*blksz)};
+			ls_x = {blksz*blksz};
+			ws_y = {1};
+			ls_y = {1};
 			kk_iters = 1;
 
 		} else {
 
 			std::cout << "GPU" << std::endl;
-			ws_x = {msize / blksz};
-			ls_x = {blksz};
-			ws_y = {msize / blksz};
-			ls_y = {blksz};
+			ws_x = {(msize*msize) / (blksz*blksz)};
+			ls_x = {blksz*blksz};
+			ws_y = {1};
+			ls_y = {1};
 			kk_iters = 1;
 
 		}

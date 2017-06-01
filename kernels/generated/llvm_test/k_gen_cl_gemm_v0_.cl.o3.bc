@@ -1,0 +1,113 @@
+	.section	__TEXT,__text,regular,pure_instructions
+	.macosx_version_min 10, 10
+	.globl	_k_gen_cl_gemm_v0_
+	.align	4, 0x90
+_k_gen_cl_gemm_v0_:                     ## @k_gen_cl_gemm_v0_
+	.cfi_startproc
+## BB#0:
+	pushq	%rbp
+Ltmp0:
+	.cfi_def_cfa_offset 16
+Ltmp1:
+	.cfi_offset %rbp, -16
+	movq	%rsp, %rbp
+Ltmp2:
+	.cfi_def_cfa_register %rbp
+	pushq	%r15
+	pushq	%r14
+	pushq	%r13
+	pushq	%r12
+	pushq	%rbx
+	pushq	%rax
+Ltmp3:
+	.cfi_offset %rbx, -56
+Ltmp4:
+	.cfi_offset %r12, -48
+Ltmp5:
+	.cfi_offset %r13, -40
+Ltmp6:
+	.cfi_offset %r14, -32
+Ltmp7:
+	.cfi_offset %r15, -24
+	movq	%rcx, %r13
+	movq	%rdx, %rbx
+	movq	%rsi, %r14
+	xorl	%edi, %edi
+	xorl	%eax, %eax
+	callq	_get_global_id
+	movl	%eax, %r15d
+	movl	$1, %edi
+	xorl	%eax, %eax
+	callq	_get_global_id
+	movl	%eax, %r12d
+	xorl	%edi, %edi
+	xorl	%eax, %eax
+	callq	_get_global_size
+                                        ## kill: EAX<def> EAX<kill> RAX<def>
+	imull	%eax, %r15d
+	xorps	%xmm0, %xmm0
+	testl	%eax, %eax
+	jle	LBB0_7
+## BB#1:                                ## %.lr.ph
+	movslq	%r15d, %rcx
+	movslq	%r12d, %r8
+	leal	-1(%rax), %edx
+	xorl	%r9d, %r9d
+	testb	$1, %al
+	jne	LBB0_3
+## BB#2:
+	xorps	%xmm0, %xmm0
+	jmp	LBB0_4
+LBB0_3:
+	movss	(%rbx,%r8,4), %xmm1     ## xmm1 = mem[0],zero,zero,zero
+	mulss	(%r13,%rcx,4), %xmm1
+	xorps	%xmm0, %xmm0
+	addss	%xmm1, %xmm0
+	movl	$1, %r9d
+LBB0_4:                                 ## %.lr.ph.split
+	testl	%edx, %edx
+	je	LBB0_7
+## BB#5:                                ## %.lr.ph.split.split.preheader
+	addq	%r9, %rcx
+	leaq	4(%r13,%rcx,4), %rcx
+	movslq	%eax, %rsi
+	movq	%r9, %rdi
+	imulq	%rsi, %rdi
+	addq	%r8, %rdi
+	incq	%r9
+	movq	%r9, %rdx
+	imulq	%rsi, %rdx
+	shlq	$3, %rsi
+	shlq	$2, %r8
+	leaq	(%r8,%rdx,4), %rdx
+	incl	%eax
+	subl	%r9d, %eax
+	.align	4, 0x90
+LBB0_6:                                 ## %.lr.ph.split.split
+                                        ## =>This Inner Loop Header: Depth=1
+	movss	(%rbx,%rdi,4), %xmm1    ## xmm1 = mem[0],zero,zero,zero
+	mulss	-4(%rcx), %xmm1
+	addss	%xmm0, %xmm1
+	movss	(%rdx,%rbx), %xmm0      ## xmm0 = mem[0],zero,zero,zero
+	mulss	(%rcx), %xmm0
+	addss	%xmm1, %xmm0
+	addq	$8, %rcx
+	addq	%rsi, %rbx
+	addl	$-2, %eax
+	jne	LBB0_6
+LBB0_7:                                 ## %._crit_edge
+	addl	%r12d, %r15d
+	movslq	%r15d, %rax
+	movss	%xmm0, (%r14,%rax,4)
+	addq	$8, %rsp
+	popq	%rbx
+	popq	%r12
+	popq	%r13
+	popq	%r14
+	popq	%r15
+	popq	%rbp
+	retq
+	.cfi_endproc
+
+
+.subsections_via_symbols
