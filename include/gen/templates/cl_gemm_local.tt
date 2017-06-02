@@ -1,0 +1,93 @@
+#define USE_LOCAL 0
+#define USE_PRIVATE 1
+#define ASYNC_COPY 0
+#define FUSED_LOOPS 0
+
+__kernel void k_gen_ord_$ORDER$_lx_$LX$_wx_$WX$_sz_$ORDER$x$ORDER$_cl_gemm_local_(__global $T$* restrict Z, const __global $T$* restrict X, const __global $T$* restrict Y) {
+
+		const int lid = get_local_id(0);
+		const int lm$ORDER$ = lid % $ORDER$; // todo: change to 24bit int mod and div
+		const int ld$ORDER$ = lid / $ORDER$;
+		const int ld$ORDER$t$ORDER$ = ld$ORDER$ * $ORDER$;
+
+		#if USE_LOCAL
+		// local copy
+
+			__local float x[$LX$];
+			__local float y[$LX$];
+			__local float z[$LX$];
+
+			// global to local
+			#if ASYNC_COPY
+				event_t e;
+				e = async_work_group_copy(x, X, $LX$, e);
+				e = async_work_group_copy(y, Y, $LX$, e);
+	  			wait_group_events(2, &e);
+			#else
+				x[lid] = X[lid]; y[lid] = Y[lid];
+				barrier(CLK_LOCAL_MEM_FENCE);
+			#endif
+
+			#if USE_PRIVATE
+			// private copy
+
+				float rx[$ORDER$]; float ry[$ORDER$]; float rz = (float)0;
+
+				#if FUSED_LOOPS
+				
+					#pragma unroll
+					for (int i = 0; i < $ORDER$; i++) {
+
+						rx[i] = x[lm$ORDER$ + $ORDER$ * i];
+						ry[i] = y[ld$ORDER$t$ORDER$ + i];
+						rz += rx[i] * ry[i];
+					}
+
+				#else
+
+					#pragma unroll
+					for (int i = 0; i < $ORDER$; i++)
+						rx[i] = x[lm$ORDER$ + $ORDER$ * i];
+
+					#pragma unroll
+					for (int i = 0; i < $ORDER$; i++)
+						ry[i] = y[ld$ORDER$t$ORDER$ + i];
+
+					#pragma unroll
+					for (int i = 0; i < $ORDER$; i++)
+						rz += rx[i] * ry[i];
+
+				#endif
+
+				// registers to local
+				z[lid] = rz;
+
+			#else
+			// no private copy
+
+				#pragma unroll
+				for (int i = 0; i < $ORDER$; i++)
+					z[lid] += x[lm$ORDER$ + $ORDER$ * i] * y[ld$ORDER$t$ORDER$ + i];
+			
+			#endif
+
+			// local to global
+			#if ASYNC_COPY
+				e = async_work_group_copy(Z, z, $LX$, e);
+				wait_group_events(1, &e);
+			#else
+				barrier(CLK_LOCAL_MEM_FENCE);
+				Z[lid]  = z[lid];
+			#endif
+		
+		#else
+		// no local copy
+
+			#pragma unroll
+			for (int i = 0; i < $ORDER$; i++)
+				Z[lid] += X[lm$ORDER$ + $ORDER$ * i] * Y[ld$ORDER$t$ORDER$ + i];
+		
+		#endif
+
+}
+

@@ -138,7 +138,7 @@ class cl_ctx {
 
 		_initialized = true;
 
-		log += "fast math = " + use_fast_math + std::string("\n");
+		log += "\tfast math = " + use_fast_math + std::string("\n");
 
 		return 0;
 	}

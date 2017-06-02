@@ -180,10 +180,8 @@ int main (int argc, char** argv) {
 
 		auto configurations = generate_configurations(RANDOM_SHUFFLE, rs, cs, ls_x, ls_y, ws_x, ws_y, vs, hs, us, dims);
 
-		long double top_gb = 0;
-		std::string conf_str_gb = "";
-		long double top_gf = 0;
-		std::string conf_str_gf = "";
+		long double top_gb = 0; std::string conf_str_gb = "";
+		long double top_gf = 0; std::string conf_str_gf = "";
 
 		unsigned long long count = 0;
 

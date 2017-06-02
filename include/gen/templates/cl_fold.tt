@@ -1,141 +1,118 @@
-#ifndef GROUP_SIZE
-#define GROUP_SIZE $WX$
+#define ACCUMULATE(x, y) (x) + (y)
+//#define ACCUMULATE(x, y) fmax((x), ((y)))
+//#define ACCUMULATE(x, y) fmin((x), ((y)))
+
+typedef union { unsigned int ival; float fval; } _if_union_t_;
+
+#if $USE_ATOMICS$ // USE_ATOMIC_OPS
+
+	// global fold using atomics
+	#define GLOBAL_FOLD_FUNC(acc, operand) \
+		_if_union_t_ new_acc; _if_union_t_ prev_acc; \
+		do { \
+			prev_acc.fval = *(acc); \
+			new_acc.fval = ACCUMULATE(prev_acc.fval, (operand)); \
+		} while (atomic_cmpxchg((volatile __global unsigned int *)acc, prev_acc.ival, new_acc.ival) != prev_acc.ival);
+
+#else // USE_ATOMICS == 0
+
+	// no atomics implementation
+
 #endif
- 
-#ifndef OPERATIONS
-#define OPERATIONS (1)
+
+#if $USE_LOCAL$ // USE_LOCAL_MEM
+
+	#define REDUCE_LOCAL(N) lx[lid] = (lid < (N)) ? ACCUMULATE(lx[lid], lx[lid +  (N)]) : lx[lid]; barrier(CLK_LOCAL_MEM_FENCE);
+
+#else // USE_LOCAL == 0
+
+	// no lmem implementation
+
 #endif
 
-#define $OP$ fmax
-////////////////////////////////////////////////////////////////////////////////////////////////////
- 
-#define LOAD_GLOBAL_F1(s, i) \
-	((__global const float*)(s))[(size_t)(i)]
- 
-#define STORE_GLOBAL_F1(s, i, v) \
-	((__global float*)(s))[(size_t)(i)] = (v)
- 
-////////////////////////////////////////////////////////////////////////////////////////////////////
- 
-#define LOAD_LOCAL_F1(s, i) \
-	((__local float*)(s))[(size_t)(i)]
- 
-#define STORE_LOCAL_F1(s, i, v) \
-	((__local float*)(s))[(size_t)(i)] = (v)
- 
-#define ACCUM_LOCAL_F1(s, i, j) \
-{ \
-	float x = ((__local float*)(s))[(size_t)(i)]; \
-	float y = ((__local float*)(s))[(size_t)(j)]; \
-	((__local float*)(s))[(size_t)(i)] = $OP$(x, y); \
-}
- 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+__kernel  void k_gen_n_$N$_lx_$LX$_ly_$LY$_wx_$WX$_wy_$WY$_cl_fold_(
+__global float* restrict Y,  
+__global const float* restrict X) {
 
-//Function to perform the atomic max
-inline void AtomicReduce(volatile __global float *source, const float operand) {
-	union {
-		unsigned int intVal;
-		float floatVal;
-	} newVal;
-	union {
-		unsigned int intVal;
-		float floatVal;
-	} prevVal;
-	do {
-		prevVal.floatVal = *source;
-		newVal.floatVal = $OP$(prevVal.floatVal, operand);
-	} while (atomic_cmpxchg((volatile __global unsigned int *)source, prevVal.intVal, newVal.intVal) != prevVal.intVal);
-}
+	const int lid = get_local_id(0);
+	const int gid = get_global_id(0);
 
-__kernel void
-cl_fold(
-	__global float *output, 
-	__global const float *input, 
-	__local float *shared,
-	const unsigned int n)
-{
-	const float zero = 0.0f;
-	const unsigned int group_id = get_global_id(0) / get_local_size(0);
-	const unsigned int group_size = GROUP_SIZE;
-	const unsigned int group_stride = 2 * group_size;
-	const size_t local_stride = group_stride * group_size; 
-	
-	unsigned int op = 0;
-	unsigned int last = OPERATIONS - 1;
-	for(op = 0; op < OPERATIONS; op++)
-	{
-		const unsigned int offset = (last - op);
-		const size_t local_id = get_local_id(0) + offset;
- 
-		STORE_LOCAL_F1(shared, local_id, zero);
-		
-		size_t i = group_id * group_stride + local_id; 
-		while (i < n)
-		{
-			float a = LOAD_GLOBAL_F1(input, i);
-			float b = LOAD_GLOBAL_F1(input, i + group_size);
-			float s = LOAD_LOCAL_F1(shared, local_id);
-			STORE_LOCAL_F1(shared, local_id, (a + b + s));
-			i += local_stride;
-		} 
-		
-	barrier(CLK_LOCAL_MEM_FENCE);
-	#if (GROUP_SIZE >= 512) 
-		if (local_id < 256) { ACCUM_LOCAL_F1(shared, local_id, local_id + 256); }
+	float loop_acc = X[gid];
+
+	#if $ITERS$ > 1
+
+		float arg;
+		int offset = $GX$;
+		#pragma unroll $ITERS$
+		for (int ii = 1; ii < $ITERS$; ii++) {
+			arg = X[gid+offset];
+			loop_acc = ACCUMULATE(loop_acc, arg);
+			offset += $GX$;
+		}		
+
 	#endif
-		
-	barrier(CLK_LOCAL_MEM_FENCE);
-	#if (GROUP_SIZE >= 256) 
-		if (local_id < 128) { ACCUM_LOCAL_F1(shared, local_id, local_id + 128); }
-	#endif    
+
+	#if $USE_LOCAL$ // USE_LOCAL_MEM
+
+		// local reduction using local mem
+
+		__local float lx[$LX$];
+
+		// load to local
+		lx[lid] = loop_acc;
+		barrier(CLK_LOCAL_MEM_FENCE);
 	
-	barrier(CLK_LOCAL_MEM_FENCE);
-	#if (GROUP_SIZE >= 128) 
-		if (local_id <  64) { ACCUM_LOCAL_F1(shared, local_id, local_id +  64); } 
 	#endif
-	
-	barrier(CLK_LOCAL_MEM_FENCE);
-	#if (GROUP_SIZE >= 64) 
-		if (local_id <  32) { ACCUM_LOCAL_F1(shared, local_id, local_id +  32); }
+
+	// local reduction
+	// assuming no more than 1024 local threads
+
+	#if $LX$ > 512
+		REDUCE_LOCAL(512);
 	#endif
-	
-	barrier(CLK_LOCAL_MEM_FENCE);
-	#if (GROUP_SIZE >= 32) 
-		if (local_id <  16) { ACCUM_LOCAL_F1(shared, local_id, local_id +  16); }
+
+	#if $LX$ > 256
+		REDUCE_LOCAL(256);
 	#endif
-	
-	barrier(CLK_LOCAL_MEM_FENCE);
-	#if (GROUP_SIZE >= 16) 
-		if (local_id <   8) { ACCUM_LOCAL_F1(shared, local_id, local_id +   8); }
+
+	#if $LX$ > 128
+		REDUCE_LOCAL(128);
 	#endif
-	
-	barrier(CLK_LOCAL_MEM_FENCE);
-	#if (GROUP_SIZE >= 8) 
-		if (local_id <   4) { ACCUM_LOCAL_F1(shared, local_id, local_id +   4); }
+
+	#if $LX$ > 64
+		REDUCE_LOCAL(64);
 	#endif
-	
-	barrier(CLK_LOCAL_MEM_FENCE);
-	#if (GROUP_SIZE >= 4) 
-		if (local_id <   2) { ACCUM_LOCAL_F1(shared, local_id, local_id +   2); } 
+
+	#if $LX$ > 32
+		REDUCE_LOCAL(32);
 	#endif
-	
-	barrier(CLK_LOCAL_MEM_FENCE);
-	#if (GROUP_SIZE >= 2) 
-		if (local_id <   1) { ACCUM_LOCAL_F1(shared, local_id, local_id +   1); }
+
+	#if $LX$ > 16
+		REDUCE_LOCAL(16);
 	#endif
- 
-	}
- 
-	barrier(CLK_LOCAL_MEM_FENCE);
-	if (get_local_id(0) == 0)
-	{
-		float v = LOAD_LOCAL_F1(shared, 0);
-		STORE_GLOBAL_F1(output, group_id, v);
+
+	#if $LX$ > 8
+		REDUCE_LOCAL(8);
+	#endif
+
+	#if $LX$ > 4
+		REDUCE_LOCAL(4);
+	#endif
+
+	#if $LX$ > 2
+		REDUCE_LOCAL(2);
+	#endif
+
+	#if $LX$ > 1
+		REDUCE_LOCAL(1);
+	#endif
+
+	// global reduction
+
+	if (lid == 0) {
+		float local_acc = lx[lid];
+		GLOBAL_FOLD_FUNC(&Y[0], local_acc);
 	}
 
-						// if (lid == 0) { \
-						// 	AtomicReduce(&out[0], maxlm[0]); \
-						// } \
-
+	// the final result should be in Y[0]
 }

@@ -155,11 +155,10 @@ int main (int argc, char** argv) {
 		if (argc > 6) { psize = std::stoi(argv[6]); }
 		if (argc > 7) { ocl.use_fast_math = std::atoi(argv[7]); }
 
-		int msize = 256;
-		int blksz = 16;
-
+		int msize = 16;
 		if (argc > 8) { msize = std::atoi(argv[8]); }
-		if (argc > 9) { blksz = std::atoi(argv[9]); }
+
+		int blksz = msize*msize;
 
 		std::string debug_fname = "debug_" + generic_name + "_" + func_name + ".txt";
 		std::string results_fname = "bench_" + generic_name + "_" + func_name + ".txt";
@@ -173,7 +172,6 @@ int main (int argc, char** argv) {
 		std::cout << "size = " << "2^" << psize << "; ";
 		std::cout << "fastmath = " << ocl.use_fast_math << "; ";
 		init_cl(requested_device);
-
 
 		std::vector<int> rs = {msize};
 		std::vector<int> cs = {msize};
@@ -191,8 +189,8 @@ int main (int argc, char** argv) {
 
 			std::cout << "CPU" << std::endl;
 			//std::generate_n(rs.begin(), rs.size(), [] { static int i {1 << 22}; return i <<= 2; });
-			ws_x = {(msize*msize) / (blksz*blksz)};
-			ls_x = {blksz*blksz};
+			ws_x = {1};
+			ls_x = {msize*msize};
 			ws_y = {1};
 			ls_y = {1};
 			kk_iters = 1;
@@ -200,8 +198,8 @@ int main (int argc, char** argv) {
 		} else {
 
 			std::cout << "GPU" << std::endl;
-			ws_x = {(msize*msize) / (blksz*blksz)};
-			ls_x = {blksz*blksz};
+			ws_x = {1};
+			ls_x = {msize*msize};
 			ws_y = {1};
 			ls_y = {1};
 			kk_iters = 1;
@@ -248,9 +246,10 @@ int main (int argc, char** argv) {
 			values["$S$"] = std::to_string(n / v);
 			values["$H$"] = std::to_string(h);
 			values["$LX$"] = std::to_string(lx);
+			values["$WX$"] = std::to_string(wx);
 			values["$LY$"] = std::to_string(ly);
 			values["$G$"] = std::to_string(g);
-			values["$WX$"] = std::to_string(msize / lx);
+			//values["$WX$"] = std::to_string(msize / lx);
 			values["$BLKSZ$"] = std::to_string(blksz);
 			values["$NUM_BLK$"] = std::to_string(msize / blksz);
 			values["$WY$"] = std::to_string(msize / ly);
@@ -281,7 +280,7 @@ int main (int argc, char** argv) {
 
 				write_to_file (fname, k_code, true);
 
-				// std::cout << "generated \"" + i + "\" :\n>>>>>>>>>>>>>>>\n" + k_code + "\n<<<<<<<<<<<<<<<\nwritten to: " + fname + "\n";
+				std::cout << "generated \"" + i + "\" :\n>>>>>>>>>>>>>>>\n" + k_code + "\n<<<<<<<<<<<<<<<\nwritten to: " + fname + "\n";
 
 				ocl.add_program(kname, fname);
 				ocl.add_kernel (kname, kname);

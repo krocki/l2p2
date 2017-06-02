@@ -221,8 +221,7 @@ std::string exec_cl_gemm (cl_array<float>& C, cl_array<float>& A, cl_array<float
 	}
 
 	// /* Execute the kernel */
-	// std::cout << "1Running " << cl_config_string << std::endl;
-	// std::cout << "2Running " << kernel_op << std::endl;
+
 	CL_SAFE_CALL (clEnqueueNDRangeKernel (__ctx->queue(), __ctx->cl_kernels[kernel_op], 2, NULL, global_work_size, local_work_size, 0, NULL, &__ctx->cl_events[func_string]) );
 
 	if (profiling_enabled) {
