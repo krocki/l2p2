@@ -7,53 +7,53 @@
 // k_gen_ORDER_BLKSIZE_cl_gemm
 __kernel void k_gen_$ORDER$_$BLKSZ$_cl_gemm_v3_(__global float* restrict Z, const __global float* restrict X, const __global float* restrict Y) {
 
-	// const int gid = get_global_id(0);
-	// const int lid = get_local_id(0);
-	// const int wid = get_global_id(1);
+  // const int gid = get_global_id(0);
+  // const int lid = get_local_id(0);
+  // const int wid = get_global_id(1);
 
-	float4 x[4];
-	float4 y[4];
-	float4 z[4];
+  float4 x[4];
+  float4 y[4];
+  float4 z[4];
 
-	x[0] = LOAD4(X, 0);
-	x[1] = LOAD4(X, 1);
-	x[2] = LOAD4(X, 2);
-	x[3] = LOAD4(X, 3);
+  x[0] = LOAD4(X, 0);
+  x[1] = LOAD4(X, 1);
+  x[2] = LOAD4(X, 2);
+  x[3] = LOAD4(X, 3);
 
-	y[0] = LOAD4(Y, 0);
-	y[1] = LOAD4(Y, 1);
-	y[2] = LOAD4(Y, 2);
-	y[3] = LOAD4(Y, 3);
+  y[0] = LOAD4(Y, 0);
+  y[1] = LOAD4(Y, 1);
+  y[2] = LOAD4(Y, 2);
+  y[3] = LOAD4(Y, 3);
 
-	z[0] = 0.0f;
-	z[1] = 0.0f;
-	z[2] = 0.0f;
-	z[3] = 0.0f;
+  z[0] = 0.0f;
+  z[1] = 0.0f;
+  z[2] = 0.0f;
+  z[3] = 0.0f;
 
-	z[0] += x[0] * y[0].x;
-	z[1] += x[0] * y[1].x;
-	z[2] += x[0] * y[2].x;
-	z[3] += x[0] * y[3].x;
+  z[0] += x[0] * y[0].x;
+  z[1] += x[0] * y[1].x;
+  z[2] += x[0] * y[2].x;
+  z[3] += x[0] * y[3].x;
 
-	z[0] += x[1] * y[0].y;
-	z[1] += x[1] * y[1].y;
-	z[2] += x[1] * y[2].y;
-	z[3] += x[1] * y[3].y;
+  z[0] += x[1] * y[0].y;
+  z[1] += x[1] * y[1].y;
+  z[2] += x[1] * y[2].y;
+  z[3] += x[1] * y[3].y;
 
-	z[0] += x[2] * y[0].z;
-	z[1] += x[2] * y[1].z;
-	z[2] += x[2] * y[2].z;
-	z[3] += x[2] * y[3].z;
+  z[0] += x[2] * y[0].z;
+  z[1] += x[2] * y[1].z;
+  z[2] += x[2] * y[2].z;
+  z[3] += x[2] * y[3].z;
 
-	z[0] += x[3] * y[0].w;
-	z[1] += x[3] * y[1].w;
-	z[2] += x[3] * y[2].w;
-	z[3] += x[3] * y[3].w;
+  z[0] += x[3] * y[0].w;
+  z[1] += x[3] * y[1].w;
+  z[2] += x[3] * y[2].w;
+  z[3] += x[3] * y[3].w;
 
-	STORE4(Z, 0, z[0]);
-	STORE4(Z, 1, z[1]);
-	STORE4(Z, 2, z[2]);
-	STORE4(Z, 3, z[3]);
+  STORE4(Z, 0, z[0]);
+  STORE4(Z, 1, z[1]);
+  STORE4(Z, 2, z[2]);
+  STORE4(Z, 3, z[3]);
 
 }
 
@@ -61,22 +61,22 @@ __kernel void k_gen_$ORDER$_$BLKSZ$_cl_gemm_v3_(__global float* restrict Z, cons
 
 Z = X * Y
 
-X	|a e i m|
-	|b f j n|
-	|c g k o|
-	|d h l p|
+X |a e i m|
+  |b f j n|
+  |c g k o|
+  |d h l p|
 
 
-Y	|A E I M|
-	|B F J N|
-	|C G K O|
-	|D H L P|
+Y |A E I M|
+  |B F J N|
+  |C G K O|
+  |D H L P|
 
 
-Z 	| [aA+eB+iC+mD] [aE+eF+iG+mH] [aI+eJ+iK+mL] [aM+eN+iO+mP]|
-	| [bA+fB+jC+nD] [bE+fF+jG+nH] [bI+fJ+jK+nL] [bM+fN+jO+nP]|
-	| [cA+Y+kC+oD] [cE+gF+kG+oH] [cI+gJ+kK+oL] [cM+gN+kO+oP]|
-	| [dA+hB+lC+pD] [dE+hF+lG+pH] [dI+hJ+lK+pL] [dM+hN+lO+pP]|
+Z   | [aA+eB+iC+mD] [aE+eF+iG+mH] [aI+eJ+iK+mL] [aM+eN+iO+mP]|
+  | [bA+fB+jC+nD] [bE+fF+jG+nH] [bI+fJ+jK+nL] [bM+fN+jO+nP]|
+  | [cA+Y+kC+oD] [cE+gF+kG+oH] [cI+gJ+kK+oL] [cM+gN+kO+oP]|
+  | [dA+hB+lC+pD] [dE+hF+lG+pH] [dI+hJ+lK+pL] [dM+hN+lO+pP]|
 
 
 
@@ -89,209 +89,95 @@ float4 Y(0) = [A E I M]
 
 Z
 
-+ X(0) * A (fmad4) 		+ X(0) * E (fmad4) 		+ X(0) * I (fmad4) 		+ X(0) * M (fmad4)
-+ X(1) * B (fmad4) 		+ X(1) * F (fmad4) 		+ X(1) * J (fmad4) 		+ X(1) * N (fmad4)
-+ X(2) * C (fmad4) 		+ X(2) * G (fmad4) 		+ X(2) * K (fmad4) 		+ X(2) * O (fmad4)
-+ X(3) * D (fmad4) 		+ X(3) * H (fmad4) 		+ X(3) * L (fmad4) 		+ X(3) * P (fmad4) */
++ X(0) * A (fmad4)    + X(0) * E (fmad4)    + X(0) * I (fmad4)    + X(0) * M (fmad4)
++ X(1) * B (fmad4)    + X(1) * F (fmad4)    + X(1) * J (fmad4)    + X(1) * N (fmad4)
++ X(2) * C (fmad4)    + X(2) * G (fmad4)    + X(2) * K (fmad4)    + X(2) * O (fmad4)
++ X(3) * D (fmad4)    + X(3) * H (fmad4)    + X(3) * L (fmad4)    + X(3) * P (fmad4) */
 
 /*
 
-$ clang -S -emit-llvm -o gemm4x4.ll -x cl gemm4x4.cl 
-
-; ModuleID = 'gemm4x4.cl'
+$; ModuleID = 'gemm4x4.cl'
+source_filename = "gemm4x4.cl"
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
-target triple = "x86_64-apple-macosx10.10.0"
+target triple = "x86_64-apple-macosx10.12.0"
 
 ; Function Attrs: nounwind ssp uwtable
-define void @k_gen_4_4_cl_gemm_v3_(<4 x float>* noalias nocapture %Z, <4 x float>* noalias nocapture readonly %X, <4 x float>* noalias nocapture readonly %Y) #0 {
-  %1 = load <4 x float>* %X, align 16, !tbaa !8
-  %2 = getelementptr inbounds <4 x float>* %X, i64 1
-  %3 = load <4 x float>* %2, align 16, !tbaa !8
-  %4 = getelementptr inbounds <4 x float>* %X, i64 2
-  %5 = load <4 x float>* %4, align 16, !tbaa !8
-  %6 = getelementptr inbounds <4 x float>* %X, i64 3
-  %7 = load <4 x float>* %6, align 16, !tbaa !8
-  %8 = load <4 x float>* %Y, align 16, !tbaa !8
-  %9 = getelementptr inbounds <4 x float>* %Y, i64 1
-  %10 = load <4 x float>* %9, align 16, !tbaa !8
-  %11 = getelementptr inbounds <4 x float>* %Y, i64 2
-  %12 = load <4 x float>* %11, align 16, !tbaa !8
-  %13 = getelementptr inbounds <4 x float>* %Y, i64 3
-  %14 = load <4 x float>* %13, align 16, !tbaa !8
-  %15 = shufflevector <4 x float> %8, <4 x float> undef, <4 x i32> zeroinitializer
-  %16 = fmul <4 x float> %1, %15
-  %17 = fadd <4 x float> %16, zeroinitializer
-  %18 = shufflevector <4 x float> %10, <4 x float> undef, <4 x i32> zeroinitializer
-  %19 = fmul <4 x float> %1, %18
-  %20 = fadd <4 x float> %19, zeroinitializer
-  %21 = shufflevector <4 x float> %12, <4 x float> undef, <4 x i32> zeroinitializer
-  %22 = fmul <4 x float> %1, %21
-  %23 = fadd <4 x float> %22, zeroinitializer
-  %24 = shufflevector <4 x float> %14, <4 x float> undef, <4 x i32> zeroinitializer
-  %25 = fmul <4 x float> %1, %24
-  %26 = fadd <4 x float> %25, zeroinitializer
-  %27 = shufflevector <4 x float> %8, <4 x float> undef, <4 x i32> <i32 1, i32 1, i32 1, i32 1>
-  %28 = fmul <4 x float> %3, %27
-  %29 = fadd <4 x float> %28, %17
-  %30 = shufflevector <4 x float> %10, <4 x float> undef, <4 x i32> <i32 1, i32 1, i32 1, i32 1>
-  %31 = fmul <4 x float> %3, %30
-  %32 = fadd <4 x float> %31, %20
-  %33 = shufflevector <4 x float> %12, <4 x float> undef, <4 x i32> <i32 1, i32 1, i32 1, i32 1>
-  %34 = fmul <4 x float> %3, %33
-  %35 = fadd <4 x float> %34, %23
-  %36 = shufflevector <4 x float> %14, <4 x float> undef, <4 x i32> <i32 1, i32 1, i32 1, i32 1>
-  %37 = fmul <4 x float> %3, %36
-  %38 = fadd <4 x float> %37, %26
-  %39 = shufflevector <4 x float> %8, <4 x float> undef, <4 x i32> <i32 2, i32 2, i32 2, i32 2>
-  %40 = fmul <4 x float> %5, %39
-  %41 = fadd <4 x float> %40, %29
-  %42 = shufflevector <4 x float> %10, <4 x float> undef, <4 x i32> <i32 2, i32 2, i32 2, i32 2>
-  %43 = fmul <4 x float> %5, %42
-  %44 = fadd <4 x float> %43, %32
-  %45 = shufflevector <4 x float> %12, <4 x float> undef, <4 x i32> <i32 2, i32 2, i32 2, i32 2>
-  %46 = fmul <4 x float> %5, %45
-  %47 = fadd <4 x float> %46, %35
-  %48 = shufflevector <4 x float> %14, <4 x float> undef, <4 x i32> <i32 2, i32 2, i32 2, i32 2>
-  %49 = fmul <4 x float> %5, %48
-  %50 = fadd <4 x float> %49, %38
-  %51 = shufflevector <4 x float> %8, <4 x float> undef, <4 x i32> <i32 3, i32 3, i32 3, i32 3>
-  %52 = fmul <4 x float> %7, %51
-  %53 = fadd <4 x float> %52, %41
-  %54 = shufflevector <4 x float> %10, <4 x float> undef, <4 x i32> <i32 3, i32 3, i32 3, i32 3>
-  %55 = fmul <4 x float> %7, %54
-  %56 = fadd <4 x float> %55, %44
-  %57 = shufflevector <4 x float> %12, <4 x float> undef, <4 x i32> <i32 3, i32 3, i32 3, i32 3>
-  %58 = fmul <4 x float> %7, %57
-  %59 = fadd <4 x float> %58, %47
-  %60 = shufflevector <4 x float> %14, <4 x float> undef, <4 x i32> <i32 3, i32 3, i32 3, i32 3>
-  %61 = fmul <4 x float> %7, %60
-  %62 = fadd <4 x float> %61, %50
-  store <4 x float> %53, <4 x float>* %Z, align 16, !tbaa !8
-  %63 = getelementptr inbounds <4 x float>* %Z, i64 1
-  store <4 x float> %56, <4 x float>* %63, align 16, !tbaa !8
-  %64 = getelementptr inbounds <4 x float>* %Z, i64 2
-  store <4 x float> %59, <4 x float>* %64, align 16, !tbaa !8
-  %65 = getelementptr inbounds <4 x float>* %Z, i64 3
-  store <4 x float> %62, <4 x float>* %65, align 16, !tbaa !8
+define void @k_gen_4_4_cl_gemm_v3_(<4 x float>* noalias nocapture, <4 x float>* noalias nocapture readonly, <4 x float>* noalias nocapture readonly) local_unnamed_addr #0 !kernel_arg_addr_space !2 !kernel_arg_access_qual !3 !kernel_arg_type !4 !kernel_arg_base_type !5 !kernel_arg_type_qual !6 {
+  %4 = load <4 x float>, <4 x float>* %1, align 16, !tbaa !7
+  %5 = getelementptr inbounds <4 x float>, <4 x float>* %1, i64 1
+  %6 = load <4 x float>, <4 x float>* %5, align 16, !tbaa !7
+  %7 = getelementptr inbounds <4 x float>, <4 x float>* %1, i64 2
+  %8 = load <4 x float>, <4 x float>* %7, align 16, !tbaa !7
+  %9 = getelementptr inbounds <4 x float>, <4 x float>* %1, i64 3
+  %10 = load <4 x float>, <4 x float>* %9, align 16, !tbaa !7
+  %11 = load <4 x float>, <4 x float>* %2, align 16, !tbaa !7
+  %12 = getelementptr inbounds <4 x float>, <4 x float>* %2, i64 1
+  %13 = load <4 x float>, <4 x float>* %12, align 16, !tbaa !7
+  %14 = getelementptr inbounds <4 x float>, <4 x float>* %2, i64 2
+  %15 = load <4 x float>, <4 x float>* %14, align 16, !tbaa !7
+  %16 = getelementptr inbounds <4 x float>, <4 x float>* %2, i64 3
+  %17 = load <4 x float>, <4 x float>* %16, align 16, !tbaa !7
+  %18 = shufflevector <4 x float> %11, <4 x float> undef, <4 x i32> zeroinitializer
+  %19 = tail call <4 x float> @llvm.fmuladd.v4f32(<4 x float> %4, <4 x float> %18, <4 x float> zeroinitializer)
+  %20 = shufflevector <4 x float> %13, <4 x float> undef, <4 x i32> zeroinitializer
+  %21 = tail call <4 x float> @llvm.fmuladd.v4f32(<4 x float> %4, <4 x float> %20, <4 x float> zeroinitializer)
+  %22 = shufflevector <4 x float> %15, <4 x float> undef, <4 x i32> zeroinitializer
+  %23 = tail call <4 x float> @llvm.fmuladd.v4f32(<4 x float> %4, <4 x float> %22, <4 x float> zeroinitializer)
+  %24 = shufflevector <4 x float> %17, <4 x float> undef, <4 x i32> zeroinitializer
+  %25 = tail call <4 x float> @llvm.fmuladd.v4f32(<4 x float> %4, <4 x float> %24, <4 x float> zeroinitializer)
+  %26 = shufflevector <4 x float> %11, <4 x float> undef, <4 x i32> <i32 1, i32 1, i32 1, i32 1>
+  %27 = tail call <4 x float> @llvm.fmuladd.v4f32(<4 x float> %6, <4 x float> %26, <4 x float> %19)
+  %28 = shufflevector <4 x float> %13, <4 x float> undef, <4 x i32> <i32 1, i32 1, i32 1, i32 1>
+  %29 = tail call <4 x float> @llvm.fmuladd.v4f32(<4 x float> %6, <4 x float> %28, <4 x float> %21)
+  %30 = shufflevector <4 x float> %15, <4 x float> undef, <4 x i32> <i32 1, i32 1, i32 1, i32 1>
+  %31 = tail call <4 x float> @llvm.fmuladd.v4f32(<4 x float> %6, <4 x float> %30, <4 x float> %23)
+  %32 = shufflevector <4 x float> %17, <4 x float> undef, <4 x i32> <i32 1, i32 1, i32 1, i32 1>
+  %33 = tail call <4 x float> @llvm.fmuladd.v4f32(<4 x float> %6, <4 x float> %32, <4 x float> %25)
+  %34 = shufflevector <4 x float> %11, <4 x float> undef, <4 x i32> <i32 2, i32 2, i32 2, i32 2>
+  %35 = tail call <4 x float> @llvm.fmuladd.v4f32(<4 x float> %8, <4 x float> %34, <4 x float> %27)
+  %36 = shufflevector <4 x float> %13, <4 x float> undef, <4 x i32> <i32 2, i32 2, i32 2, i32 2>
+  %37 = tail call <4 x float> @llvm.fmuladd.v4f32(<4 x float> %8, <4 x float> %36, <4 x float> %29)
+  %38 = shufflevector <4 x float> %15, <4 x float> undef, <4 x i32> <i32 2, i32 2, i32 2, i32 2>
+  %39 = tail call <4 x float> @llvm.fmuladd.v4f32(<4 x float> %8, <4 x float> %38, <4 x float> %31)
+  %40 = shufflevector <4 x float> %17, <4 x float> undef, <4 x i32> <i32 2, i32 2, i32 2, i32 2>
+  %41 = tail call <4 x float> @llvm.fmuladd.v4f32(<4 x float> %8, <4 x float> %40, <4 x float> %33)
+  %42 = shufflevector <4 x float> %11, <4 x float> undef, <4 x i32> <i32 3, i32 3, i32 3, i32 3>
+  %43 = tail call <4 x float> @llvm.fmuladd.v4f32(<4 x float> %10, <4 x float> %42, <4 x float> %35)
+  %44 = shufflevector <4 x float> %13, <4 x float> undef, <4 x i32> <i32 3, i32 3, i32 3, i32 3>
+  %45 = tail call <4 x float> @llvm.fmuladd.v4f32(<4 x float> %10, <4 x float> %44, <4 x float> %37)
+  %46 = shufflevector <4 x float> %15, <4 x float> undef, <4 x i32> <i32 3, i32 3, i32 3, i32 3>
+  %47 = tail call <4 x float> @llvm.fmuladd.v4f32(<4 x float> %10, <4 x float> %46, <4 x float> %39)
+  %48 = shufflevector <4 x float> %17, <4 x float> undef, <4 x i32> <i32 3, i32 3, i32 3, i32 3>
+  %49 = tail call <4 x float> @llvm.fmuladd.v4f32(<4 x float> %10, <4 x float> %48, <4 x float> %41)
+  store <4 x float> %43, <4 x float>* %0, align 16, !tbaa !7
+  %50 = getelementptr inbounds <4 x float>, <4 x float>* %0, i64 1
+  store <4 x float> %45, <4 x float>* %50, align 16, !tbaa !7
+  %51 = getelementptr inbounds <4 x float>, <4 x float>* %0, i64 2
+  store <4 x float> %47, <4 x float>* %51, align 16, !tbaa !7
+  %52 = getelementptr inbounds <4 x float>, <4 x float>* %0, i64 3
+  store <4 x float> %49, <4 x float>* %52, align 16, !tbaa !7
   ret void
 }
 
-attributes #0 = { nounwind ssp uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "target-features"="+ssse3,+cx16,+sse,+sse2,+sse3" "unsafe-fp-math"="false" "use-soft-float"="false" }
+; Function Attrs: nounwind readnone
+declare <4 x float> @llvm.fmuladd.v4f32(<4 x float>, <4 x float>, <4 x float>) #1
 
-!opencl.kernels = !{!0}
-!llvm.module.flags = !{!6}
-!llvm.ident = !{!7}
+attributes #0 = { nounwind ssp uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="penryn" "target-features"="+cx16,+fxsr,+mmx,+sse,+sse2,+sse3,+sse4.1,+ssse3,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #1 = { nounwind readnone }
 
-!0 = !{void (<4 x float>*, <4 x float>*, <4 x float>*)* @k_gen_4_4_cl_gemm_v3_, !1, !2, !3, !4, !5}
-!1 = !{!"kernel_arg_addr_space", i32 0, i32 0, i32 0}
-!2 = !{!"kernel_arg_access_qual", !"none", !"none", !"none"}
-!3 = !{!"kernel_arg_type", !"float4*", !"float4*", !"float4*"}
-!4 = !{!"kernel_arg_base_type", !"float __attribute__((ext_vector_type(4)))*", !"float __attribute__((ext_vector_type(4)))*", !"float __attribute__((ext_vector_type(4)))*"}
-!5 = !{!"kernel_arg_type_qual", !"restrict", !"restrict const", !"restrict const"}
-!6 = !{i32 1, !"PIC Level", i32 2}
-!7 = !{!"Apple LLVM version 7.0.2 (clang-700.1.81)"}
-!8 = !{!9, !9, i64 0}
-!9 = !{!"omnipotent char", !10, i64 0}
-!10 = !{!"Simple C/C++ TBAA"}
+!llvm.module.flags = !{!0}
+!llvm.ident = !{!1}
 
-*/
+!0 = !{i32 1, !"PIC Level", i32 2}
+!1 = !{!"Apple LLVM version 8.1.0 (clang-802.0.42)"}
+!2 = !{i32 0, i32 0, i32 0}
+!3 = !{!"none", !"none", !"none"}
+!4 = !{!"float4*", !"float4*", !"float4*"}
+!5 = !{!"float __attribute__((ext_vector_type(4)))*", !"float __attribute__((ext_vector_type(4)))*", !"float __attribute__((ext_vector_type(4)))*"}
+!6 = !{!"restrict", !"restrict const", !"restrict const"}
+!7 = !{!8, !8, i64 0}
+!8 = !{!"omnipotent char", !9, i64 0}
+!9 = !{!"Simple C/C++ TBAA"}
 
-/* O3
-
-; ModuleID = 'gemm4x4.cl'
-target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
-target triple = "x86_64-apple-macosx10.10.0"
-
-; Function Attrs: nounwind ssp uwtable
-define void @k_gen_4_4_cl_gemm_v3_(<4 x float>* noalias nocapture %Z, <4 x float>* noalias nocapture readonly %X, <4 x float>* noalias nocapture readonly %Y) #0 {
-  %1 = load <4 x float>* %X, align 16, !tbaa !8
-  %2 = getelementptr inbounds <4 x float>* %X, i64 1
-  %3 = load <4 x float>* %2, align 16, !tbaa !8
-  %4 = getelementptr inbounds <4 x float>* %X, i64 2
-  %5 = load <4 x float>* %4, align 16, !tbaa !8
-  %6 = getelementptr inbounds <4 x float>* %X, i64 3
-  %7 = load <4 x float>* %6, align 16, !tbaa !8
-  %8 = load <4 x float>* %Y, align 16, !tbaa !8
-  %9 = getelementptr inbounds <4 x float>* %Y, i64 1
-  %10 = load <4 x float>* %9, align 16, !tbaa !8
-  %11 = getelementptr inbounds <4 x float>* %Y, i64 2
-  %12 = load <4 x float>* %11, align 16, !tbaa !8
-  %13 = getelementptr inbounds <4 x float>* %Y, i64 3
-  %14 = load <4 x float>* %13, align 16, !tbaa !8
-  %15 = shufflevector <4 x float> %8, <4 x float> undef, <4 x i32> zeroinitializer
-  %16 = fmul <4 x float> %1, %15
-  %17 = fadd <4 x float> %16, zeroinitializer
-  %18 = shufflevector <4 x float> %10, <4 x float> undef, <4 x i32> zeroinitializer
-  %19 = fmul <4 x float> %1, %18
-  %20 = fadd <4 x float> %19, zeroinitializer
-  %21 = shufflevector <4 x float> %12, <4 x float> undef, <4 x i32> zeroinitializer
-  %22 = fmul <4 x float> %1, %21
-  %23 = fadd <4 x float> %22, zeroinitializer
-  %24 = shufflevector <4 x float> %14, <4 x float> undef, <4 x i32> zeroinitializer
-  %25 = fmul <4 x float> %1, %24
-  %26 = fadd <4 x float> %25, zeroinitializer
-  %27 = shufflevector <4 x float> %8, <4 x float> undef, <4 x i32> <i32 1, i32 1, i32 1, i32 1>
-  %28 = fmul <4 x float> %3, %27
-  %29 = fadd <4 x float> %28, %17
-  %30 = shufflevector <4 x float> %10, <4 x float> undef, <4 x i32> <i32 1, i32 1, i32 1, i32 1>
-  %31 = fmul <4 x float> %3, %30
-  %32 = fadd <4 x float> %31, %20
-  %33 = shufflevector <4 x float> %12, <4 x float> undef, <4 x i32> <i32 1, i32 1, i32 1, i32 1>
-  %34 = fmul <4 x float> %3, %33
-  %35 = fadd <4 x float> %34, %23
-  %36 = shufflevector <4 x float> %14, <4 x float> undef, <4 x i32> <i32 1, i32 1, i32 1, i32 1>
-  %37 = fmul <4 x float> %3, %36
-  %38 = fadd <4 x float> %37, %26
-  %39 = shufflevector <4 x float> %8, <4 x float> undef, <4 x i32> <i32 2, i32 2, i32 2, i32 2>
-  %40 = fmul <4 x float> %5, %39
-  %41 = fadd <4 x float> %40, %29
-  %42 = shufflevector <4 x float> %10, <4 x float> undef, <4 x i32> <i32 2, i32 2, i32 2, i32 2>
-  %43 = fmul <4 x float> %5, %42
-  %44 = fadd <4 x float> %43, %32
-  %45 = shufflevector <4 x float> %12, <4 x float> undef, <4 x i32> <i32 2, i32 2, i32 2, i32 2>
-  %46 = fmul <4 x float> %5, %45
-  %47 = fadd <4 x float> %46, %35
-  %48 = shufflevector <4 x float> %14, <4 x float> undef, <4 x i32> <i32 2, i32 2, i32 2, i32 2>
-  %49 = fmul <4 x float> %5, %48
-  %50 = fadd <4 x float> %49, %38
-  %51 = shufflevector <4 x float> %8, <4 x float> undef, <4 x i32> <i32 3, i32 3, i32 3, i32 3>
-  %52 = fmul <4 x float> %7, %51
-  %53 = fadd <4 x float> %52, %41
-  %54 = shufflevector <4 x float> %10, <4 x float> undef, <4 x i32> <i32 3, i32 3, i32 3, i32 3>
-  %55 = fmul <4 x float> %7, %54
-  %56 = fadd <4 x float> %55, %44
-  %57 = shufflevector <4 x float> %12, <4 x float> undef, <4 x i32> <i32 3, i32 3, i32 3, i32 3>
-  %58 = fmul <4 x float> %7, %57
-  %59 = fadd <4 x float> %58, %47
-  %60 = shufflevector <4 x float> %14, <4 x float> undef, <4 x i32> <i32 3, i32 3, i32 3, i32 3>
-  %61 = fmul <4 x float> %7, %60
-  %62 = fadd <4 x float> %61, %50
-  store <4 x float> %53, <4 x float>* %Z, align 16, !tbaa !8
-  %63 = getelementptr inbounds <4 x float>* %Z, i64 1
-  store <4 x float> %56, <4 x float>* %63, align 16, !tbaa !8
-  %64 = getelementptr inbounds <4 x float>* %Z, i64 2
-  store <4 x float> %59, <4 x float>* %64, align 16, !tbaa !8
-  %65 = getelementptr inbounds <4 x float>* %Z, i64 3
-  store <4 x float> %62, <4 x float>* %65, align 16, !tbaa !8
-  ret void
-}
-
-attributes #0 = { nounwind ssp uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "target-features"="+ssse3,+cx16,+sse,+sse2,+sse3" "unsafe-fp-math"="false" "use-soft-float"="false" }
-
-!opencl.kernels = !{!0}
-!llvm.module.flags = !{!6}
-!llvm.ident = !{!7}
-
-!0 = !{void (<4 x float>*, <4 x float>*, <4 x float>*)* @k_gen_4_4_cl_gemm_v3_, !1, !2, !3, !4, !5}
-!1 = !{!"kernel_arg_addr_space", i32 0, i32 0, i32 0}
-!2 = !{!"kernel_arg_access_qual", !"none", !"none", !"none"}
-!3 = !{!"kernel_arg_type", !"float4*", !"float4*", !"float4*"}
-!4 = !{!"kernel_arg_base_type", !"float __attribute__((ext_vector_type(4)))*", !"float __attribute__((ext_vector_type(4)))*", !"float __attribute__((ext_vector_type(4)))*"}
-!5 = !{!"kernel_arg_type_qual", !"restrict", !"restrict const", !"restrict const"}
-!6 = !{i32 1, !"PIC Level", i32 2}
-!7 = !{!"Apple LLVM version 7.0.2 (clang-700.1.81)"}
-!8 = !{!9, !9, i64 0}
-!9 = !{!"omnipotent char", !10, i64 0}
-!10 = !{!"Simple C/C++ TBAA"}
 
 */

@@ -1,0 +1,17 @@
+#define ACCUMULATE(x, y) (x) + (y)
+
+__kernel  void k_gen_n_$N$_lx_$LX$_ly_$LY$_wx_$WX$_wy_$WY$_cl_scan_(
+__global float* restrict Y,  
+__global const float* restrict X) {
+
+	const int lid = get_local_id(0);
+	const int gid = get_global_id(0);
+
+	// load to local mem
+	__local float lx[$LX$];
+	lx[lid] = X[gid];
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	// write to global mem
+	//Y[gid] = lx[lid];
+}
