@@ -9,8 +9,28 @@ __global const float* restrict X) {
 
 	// load to local mem
 	__local float lx[$LX$];
-	lx[lid] = X[gid];
+	lx[lid] = 1.0f * gid;//X[gid];
 	barrier(CLK_LOCAL_MEM_FENCE);
+
+	printf("#0 lid %d lx[lid] = %f\n", lid, lx[lid]);
+
+	// ver #1
+	//for (int offset = 1; offset < $LX$; offset *= 2) {
+
+		float t;
+
+		//printf("#1 lid %d, offset %d, lx[lid] = %f\n", lid, offset, lx[lid]);
+		if (lid >= offset) { t = lx[lid]; }
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		//printf("#2 lid %d, offset %d, lx[lid] = %f\n", lid, offset, lx[lid]);
+		if (lid >= offset) { lx[lid] = ACCUMULATE(t, lx[lid]); }
+		barrier(CLK_LOCAL_MEM_FENCE);	
+
+		//printf("#3 lid %d, offset %d, lx[lid] = %f\n", lid, offset, lx[lid]);
+	//}
+
+	printf("#4 lid %d lx[lid] = %f\n", lid, lx[lid]);
 
 	// write to global mem
 	//Y[gid] = lx[lid];

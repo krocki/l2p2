@@ -122,7 +122,7 @@ int main (int argc, char** argv) {
 
 		} else {
 
-			printf("usage: %s <d> <t> <f> [outpath] [iters] [size]\nexamples:\n\t%s 1 \"cl_fold\" \"fmax\"\n\t%s 2 \"cl_fold\" \"fmin\"\n\t%s 4 \"cl_fold\" \"add\" \"../kernels/generated/src/\" 20 24\n", argv[0], argv[0], argv[0], argv[0]);
+			printf("usage: %s <d> <t> <f> [outpath] [iters] [size]\nexamples:\n\t%s 1 \"cl_scan\" \"fmax\"\n\t%s 2 \"cl_scan\" \"fmin\"\n\t%s 4 \"cl_scan\" \"add\" \"../kernels/generated/src/\" 20 24\n", argv[0], argv[0], argv[0], argv[0]);
 			return -1;
 
 		}
