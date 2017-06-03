@@ -1,5 +1,7 @@
 #define ACCUMULATE(x, y) (x) + (y)
 
+#define SCAN_LOCAL(offset) if (lid >= (offset)) { lx[lid] = ACCUMULATE(lx[lid], lx[lid-offset]);} barrier(CLK_LOCAL_MEM_FENCE);
+
 __kernel  void k_gen_n_$N$_lx_$LX$_ly_$LY$_wx_$WX$_wy_$WY$_cl_scan_(
 __global float* restrict Y,  
 __global const float* restrict X) {
@@ -9,26 +11,59 @@ __global const float* restrict X) {
 
 	// load to local mem
 	__local float lx[$LX$];
-	lx[lid] = 1.0f * gid;//X[gid];
+	lx[lid] = 1;//gid;//X[gid];
+	printf("#0 lid %d lx[lid] = %f\n", lid, lx[lid]);
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-	printf("#0 lid %d lx[lid] = %f\n", lid, lx[lid]);
+	// ver #1 - simple
+	// for (int offset = 1; offset < $LX$; offset *= 2) {
 
-	// ver #1
-	//for (int offset = 1; offset < $LX$; offset *= 2) {
+	// 	if (lid >= offset) { lx[lid] = ACCUMULATE(lx[lid-offset], lx[lid]); }
+	// 	barrier(CLK_LOCAL_MEM_FENCE);
+	// }
 
-		float t;
+	// ver #2 - unrolled
+	#if $LX$ > 1
+		SCAN_LOCAL(1);
+	#endif
 
-		//printf("#1 lid %d, offset %d, lx[lid] = %f\n", lid, offset, lx[lid]);
-		if (lid >= offset) { t = lx[lid]; }
-		barrier(CLK_LOCAL_MEM_FENCE);
+	#if $LX$ > 2
+		SCAN_LOCAL(2);
+	#endif
 
-		//printf("#2 lid %d, offset %d, lx[lid] = %f\n", lid, offset, lx[lid]);
-		if (lid >= offset) { lx[lid] = ACCUMULATE(t, lx[lid]); }
-		barrier(CLK_LOCAL_MEM_FENCE);	
+	#if $LX$ > 4
+		SCAN_LOCAL(4);
+	#endif
 
-		//printf("#3 lid %d, offset %d, lx[lid] = %f\n", lid, offset, lx[lid]);
-	//}
+	#if $LX$ > 8
+		SCAN_LOCAL(8);
+	#endif
+
+	#if $LX$ > 16
+		SCAN_LOCAL(16);
+	#endif
+
+	#if $LX$ > 32
+		SCAN_LOCAL(32);
+	#endif
+
+	#if $LX$ > 64
+		SCAN_LOCAL(64);
+	#endif
+
+	#if $LX$ > 128
+		SCAN_LOCAL(128);
+	#endif
+
+	#if $LX$ > 256
+		SCAN_LOCAL(256);
+	#endif
+
+	#if $LX$ > 512
+		SCAN_LOCAL(512);
+	#endif
+	// assumming no more than 1024 threads, but possible to have more in Xeon (8192), so need to fix this, do better using some template
+
 
 	printf("#4 lid %d lx[lid] = %f\n", lid, lx[lid]);
 

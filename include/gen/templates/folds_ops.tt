@@ -1,0 +1,62 @@
+// Special folds
+
+and :: Foldable t => t Bool -> Bool Source #
+
+and returns the conjunction of a container of Bools. For the result to be True, the container must be finite; False, however, results from a False value finitely far from the left end.
+
+or :: Foldable t => t Bool -> Bool Source #
+
+or returns the disjunction of a container of Bools. For the result to be False, the container must be finite; True, however, results from a True value finitely far from the left end.
+
+any :: Foldable t => (a -> Bool) -> t a -> Bool Source #
+
+Determines whether any element of the structure satisfies the predicate.
+
+all :: Foldable t => (a -> Bool) -> t a -> Bool Source #
+
+Determines whether all elements of the structure satisfy the predicate.
+
+sum :: (Foldable t, Num a) => t a -> a Source #
+
+The sum function computes the sum of the numbers of a structure.
+
+product :: (Foldable t, Num a) => t a -> a Source #
+
+The product function computes the product of the numbers of a structure.
+
+maximum :: forall a. (Foldable t, Ord a) => t a -> a Source #
+
+The largest element of a non-empty structure.
+
+minimum :: forall a. (Foldable t, Ord a) => t a -> a
+
+elem :: (Foldable t, Eq a) => a -> t a -> Bool Source #
+
+Does the element occur in the structure?
+
+notElem :: (Foldable t, Eq a) => a -> t a -> Bool infix 4 Source #
+
+notElem is the negation of elem.
+
+lookup :: Eq a => a -> [(a, b)] -> Maybe b
+
+find :: Foldable t => (a -> Bool) -> t a -> Maybe a Source #
+
+The find function takes a predicate and a structure and returns the leftmost element of the structure matching the predicate, or Nothing if there is no such element.
+
+filter :: (a -> Bool) -> [a] -> [a]
+
+elemIndex :: Eq a => a -> [a] -> Maybe Int Source #
+
+The elemIndex function returns the index of the first element in the given list which is equal (by ==) to the query element, or Nothing if there is no such element.
+
+elemIndices :: Eq a => a -> [a] -> [Int] Source #
+
+The elemIndices function extends elemIndex, by returning the indices of all elements equal to the query element, in ascending order.
+
+findIndex :: (a -> Bool) -> [a] -> Maybe Int Source #
+
+The findIndex function takes a predicate and a list and returns the index of the first element in the list satisfying the predicate, or Nothing if there is no such element.
+
+findIndices :: (a -> Bool) -> [a] -> [Int] Source #
+

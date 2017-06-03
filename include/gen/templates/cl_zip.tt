@@ -1,0 +1,51 @@
+zip :: [a] -> [b] -> [(a, b)] Source #
+
+zip takes two lists and returns a list of corresponding pairs. If one input list is short, excess elements of the longer list are discarded.
+
+zip is right-lazy:
+
+zip [] _|_ = []
+zip3 :: [a] -> [b] -> [c] -> [(a, b, c)] Source #
+
+zip3 takes three lists and returns a list of triples, analogous to zip.
+
+zip4 :: [a] -> [b] -> [c] -> [d] -> [(a, b, c, d)] Source #
+
+The zip4 function takes four lists and returns a list of quadruples, analogous to zip.
+
+zip5 :: [a] -> [b] -> [c] -> [d] -> [e] -> [(a, b, c, d, e)] Source #
+
+The zip5 function takes five lists and returns a list of five-tuples, analogous to zip.
+
+zip6 :: [a] -> [b] -> [c] -> [d] -> [e] -> [f] -> [(a, b, c, d, e, f)] Source #
+
+The zip6 function takes six lists and returns a list of six-tuples, analogous to zip.
+
+zip7 :: [a] -> [b] -> [c] -> [d] -> [e] -> [f] -> [g] -> [(a, b, c, d, e, f, g)]
+
+zipWith :: (a -> b -> c) -> [a] -> [b] -> [c] Source #
+
+zipWith generalises zip by zipping with the function given as the first argument, instead of a tupling function. For example, zipWith (+) is applied to two lists to produce the list of corresponding sums.
+
+zipWith is right-lazy:
+
+zipWith f [] _|_ = []
+zipWith3 :: (a -> b -> c -> d) -> [a] -> [b] -> [c] -> [d] Source #
+
+The zipWith3 function takes a function which combines three elements, as well as three lists and returns a list of their point-wise combination, analogous to zipWith.
+
+zipWith4 :: (a -> b -> c -> d -> e) -> [a] -> [b] -> [c] -> [d] -> [e] Source #
+
+The zipWith4 function takes a function which combines four elements, as well as four lists and returns a list of their point-wise combination, analogous to zipWith.
+
+zipWith5 :: (a -> b -> c -> d -> e -> f) -> [a] -> [b] -> [c] -> [d] -> [e] -> [f] Source #
+
+The zipWith5 function takes a function which combines five elements, as well as five lists and returns a list of their point-wise combination, analogous to zipWith.
+
+zipWith6 :: (a -> b -> c -> d -> e -> f -> g) -> [a] -> [b] -> [c] -> [d] -> [e] -> [f] -> [g] Source #
+
+The zipWith6 function takes a function which combines six elements, as well as six lists and returns a list of their point-wise combination, analogous to zipWith.
+
+zipWith7 :: (a -> b -> c -> d -> e -> f -> g -> h) -> [a] -> [b] -> [c] -> [d] -> [e] -> [f] -> [g] -> [h] Source #
+
+The zipWith7 function takes a function which combines seven elements, as well as seven lists and returns a list of their point-wise combination, analogous to zipWith.

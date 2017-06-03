@@ -1,0 +1,25 @@
+cl_unzip
+
+unzip :: [(a, b)] -> ([a], [b]) Source #
+
+unzip transforms a list of pairs into a list of first components and a list of second components.
+
+unzip3 :: [(a, b, c)] -> ([a], [b], [c]) Source #
+
+The unzip3 function takes a list of triples and returns three lists, analogous to unzip.
+
+unzip4 :: [(a, b, c, d)] -> ([a], [b], [c], [d]) Source #
+
+The unzip4 function takes a list of quadruples and returns four lists, analogous to unzip.
+
+unzip5 :: [(a, b, c, d, e)] -> ([a], [b], [c], [d], [e]) Source #
+
+The unzip5 function takes a list of five-tuples and returns five lists, analogous to unzip.
+
+unzip6 :: [(a, b, c, d, e, f)] -> ([a], [b], [c], [d], [e], [f]) Source #
+
+The unzip6 function takes a list of six-tuples and returns six lists, analogous to unzip.
+
+unzip7 :: [(a, b, c, d, e, f, g)] -> ([a], [b], [c], [d], [e], [f], [g]) Source #
+
+The unzip7 function takes a list of seven-tuples and returns seven lists, analogous to unzip.
