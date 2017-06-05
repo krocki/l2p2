@@ -64,12 +64,9 @@ __global const float* restrict X) {
 	#endif
 	// assumming no more than 1024 threads, but possible to have more in Xeon (8192), so need to fix this, do better using some template
 
-        //int inclusive = 0;
-        //if (inclusive) { /*nothing*/ } else { lx[lid] = lid > 0 ? lx[lid-1] : 0.0f;}
 
 	printf("#4 lid %d lx[lid] = %f\n", lid, lx[lid]);
 
 	// write to global mem
 	//Y[gid] = lx[lid];
-
 }

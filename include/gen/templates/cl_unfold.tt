@@ -11,9 +11,10 @@ __global const float* restrict X) {
 	__local float lx[$LX$];
 
 	if (lid == 0) {
-	lx[lid] = X[gid];
-}
+		lx[lid] = X[gid];
+	}
 	barrier(CLK_LOCAL_MEM_FENCE);
+	x[lid] = lx[0]; // this might have poor performance, because all threads read from lx[0]
 
 	// write to global mem
 	//Y[gid] = lx[lid];
