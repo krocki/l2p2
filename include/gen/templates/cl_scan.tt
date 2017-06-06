@@ -12,7 +12,8 @@ __global const float* restrict X) {
 
 	// load to local mem
 	__local float lx[$LX$];
-	lx[lid] = 1;//gid;//X[gid];
+	__local float lx2[$LX$];
+        lx[lid] = 1;//gid;//X[gid];
 	//printf("#0 lid %d #0 wid %d gid %d, lx[lid] = %f\n", lid, wid, gid, lx[lid]);	
 	barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -42,74 +43,58 @@ __global const float* restrict X) {
 	}
 
 
-	// local down-phase
-	//
-	// 1 2 1 4 1 2 1 8
-	//        \  |
-	//         \ | 		// STRIDE = 4
-	//          \|
-	// 1 2 1 4 1 6 1 8
-	//   \ | \ | \ |
-	//    \|  \|  \| 	// STRIDE = 2
-	// 1 2 3 4 5 6 7 8
-	//
-	//
-	
-	for (offset = $LX$/2; offset > 1; offset >>= 1) {
-		if ((lid+1) % offset == 0) {
-			lx[lid+offset/2] = lx[lid+offset/2] + lx[lid];
+        // local down-phase
+        //
+        // 1 2 1 4 1 2 1 8
+        //        \  |
+        //         \ |        // STRIDE = 4
+        //          \|
+        // 1 2 1 4 1 6 1 8
+        //   \ | \ | \ |
+        //    \|  \|  \|      // STRIDE = 2
+        // 1 2 3 4 5 6 7 8
+        //
+
+        for (offset = $LX$/2; offset > 1; offset >>= 1) {
+                if ((lid+1) % offset == 0) {
+                        lx[lid+offset/2] = lx[lid+offset/2] + lx[lid];
+                }
+                barrier(CLK_LOCAL_MEM_FENCE);
+        }
+
+        // last thread in a group
+        if ((lid + 1) % $LX$ == 0) {
+             Y[wid] = lx[lid];
+        }
+
+        barrier(CLK_GLOBAL_MEM_FENCE);
+
+        // 2nd pass
+        lx2[lid] = Y[lid];
+        for (offset = 1; offset < $WX$; offset <<= 1) {
+		//printf("lid %d, off %d\n", lid, offset);
+		if ((lid+1) % (offset*2) == 0) {	// ver #2 - unrolled
+			lx2[lid] = lx2[lid-offset] + lx2[lid];	// #if $LX$ > 1
 		}
-		barrier(CLK_LOCAL_MEM_FENCE);
+		barrier(CLK_LOCAL_MEM_FENCE);	// #endif
 	}
 
-	// ver #2 - unrolled
-	// #if $LX$ > 1
-	// 	SCAN_LOCAL(1);
-	// #endif
-
-	// #if $LX$ > 2
-	// 	SCAN_LOCAL(2);
-	// #endif
-
-	// #if $LX$ > 4
-	// 	SCAN_LOCAL(4);
-	// #endif
-
-	// #if $LX$ > 8
-	// 	SCAN_LOCAL(8);
-	// #endif
-
-	// #if $LX$ > 16
-	// 	SCAN_LOCAL(16);
-	// #endif
-
-	// #if $LX$ > 32
-	// 	SCAN_LOCAL(32);
-	// #endif
-
-	// #if $LX$ > 64
-	// 	SCAN_LOCAL(64);
-	// #endif
-
-	// #if $LX$ > 128
-	// 	SCAN_LOCAL(128);
-	// #endif
-
-	// #if $LX$ > 256
-	// 	SCAN_LOCAL(256);
-	// #endif
-
-	// #if $LX$ > 512
-	// 	SCAN_LOCAL(512);
-	// #endif
-	// assumming no more than 1024 threads, but possible to have more in Xeon (8192), so need to fix this, do better using some template
+        for (offset = $WX$/2; offset > 1; offset >>= 1) {	// #endif
+                if ((lid+1) % offset == 0) {
+                        lx2[lid+offset/2] = lx2[lid+offset/2] + lx2[lid];	// #if $LX$ > 32
+                }
+                barrier(CLK_LOCAL_MEM_FENCE);	// #endif
+        }
 
         //int inclusive = 0;
         //if (inclusive) { /*nothing*/ } else { lx[lid] = lid > 0 ? lx[lid-1] : 0.0f;}
 
-		printf("#0 lid %d #0 wid %d gid %d, lx[lid] = %f\n", lid, wid, gid, lx[lid]);
+        if (wid > 0)
+        lx[lid] += lx2[wid-1];
 
+	printf("#0 lid %d #0 wid %d gid %d, lx[lid] = %f\n", lid, wid, gid, lx[lid]);
 	// write to global mem
+	// printf("#1 lid %d #0 wid %d gid %d, lx[lid] = %f\n", lid, wid, gid, lx2[lid]);
 	//Y[gid] = lx[lid];
 
 }
