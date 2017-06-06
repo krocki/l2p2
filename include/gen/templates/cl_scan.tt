@@ -8,11 +8,12 @@ __global const float* restrict X) {
 
 	const int lid = get_local_id(0);
 	const int gid = get_global_id(0);
+	const int wid = get_group_id(0);
 
 	// load to local mem
 	__local float lx[$LX$];
 	lx[lid] = 1;//gid;//X[gid];
-	printf("#0 lid %d lx[lid] = %f\n", lid, lx[lid]);
+	//printf("#0 lid %d #0 wid %d gid %d, lx[lid] = %f\n", lid, wid, gid, lx[lid]);	
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	// ver #1 - simple
@@ -22,52 +23,91 @@ __global const float* restrict X) {
 	// 	barrier(CLK_LOCAL_MEM_FENCE);
 	// }
 
+	int offset;
+
+	// local up-reduce
+	//
+	// 1 1 1 1 1 1 1 1
+	// 1 2 1 2 1 2 1 2
+	// 1 2 1 4 1 2 1 4
+	// 1 2 1 4 1 2 1 8
+	//
+
+	for (offset = 1; offset < $LX$; offset <<= 1) {
+		//printf("lid %d, off %d\n", lid, offset);
+		if ((lid+1) % (offset*2) == 0) {
+			lx[lid] = lx[lid-offset] + lx[lid];
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
+	}
+
+
+	// local down-phase
+	//
+	// 1 2 1 4 1 2 1 8
+	//        \  |
+	//         \ | 		// STRIDE = 4
+	//          \|
+	// 1 2 1 4 1 6 1 8
+	//   \ | \ | \ |
+	//    \|  \|  \| 	// STRIDE = 2
+	// 1 2 3 4 5 6 7 8
+	//
+	//
+	
+	for (offset = $LX$/2; offset > 1; offset >>= 1) {
+		if ((lid+1) % offset == 0) {
+			lx[lid+offset/2] = lx[lid+offset/2] + lx[lid];
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
+	}
+
 	// ver #2 - unrolled
-	#if $LX$ > 1
-		SCAN_LOCAL(1);
-	#endif
+	// #if $LX$ > 1
+	// 	SCAN_LOCAL(1);
+	// #endif
 
-	#if $LX$ > 2
-		SCAN_LOCAL(2);
-	#endif
+	// #if $LX$ > 2
+	// 	SCAN_LOCAL(2);
+	// #endif
 
-	#if $LX$ > 4
-		SCAN_LOCAL(4);
-	#endif
+	// #if $LX$ > 4
+	// 	SCAN_LOCAL(4);
+	// #endif
 
-	#if $LX$ > 8
-		SCAN_LOCAL(8);
-	#endif
+	// #if $LX$ > 8
+	// 	SCAN_LOCAL(8);
+	// #endif
 
-	#if $LX$ > 16
-		SCAN_LOCAL(16);
-	#endif
+	// #if $LX$ > 16
+	// 	SCAN_LOCAL(16);
+	// #endif
 
-	#if $LX$ > 32
-		SCAN_LOCAL(32);
-	#endif
+	// #if $LX$ > 32
+	// 	SCAN_LOCAL(32);
+	// #endif
 
-	#if $LX$ > 64
-		SCAN_LOCAL(64);
-	#endif
+	// #if $LX$ > 64
+	// 	SCAN_LOCAL(64);
+	// #endif
 
-	#if $LX$ > 128
-		SCAN_LOCAL(128);
-	#endif
+	// #if $LX$ > 128
+	// 	SCAN_LOCAL(128);
+	// #endif
 
-	#if $LX$ > 256
-		SCAN_LOCAL(256);
-	#endif
+	// #if $LX$ > 256
+	// 	SCAN_LOCAL(256);
+	// #endif
 
-	#if $LX$ > 512
-		SCAN_LOCAL(512);
-	#endif
+	// #if $LX$ > 512
+	// 	SCAN_LOCAL(512);
+	// #endif
 	// assumming no more than 1024 threads, but possible to have more in Xeon (8192), so need to fix this, do better using some template
 
         //int inclusive = 0;
         //if (inclusive) { /*nothing*/ } else { lx[lid] = lid > 0 ? lx[lid-1] : 0.0f;}
 
-	printf("#4 lid %d lx[lid] = %f\n", lid, lx[lid]);
+		printf("#0 lid %d #0 wid %d gid %d, lx[lid] = %f\n", lid, wid, gid, lx[lid]);
 
 	// write to global mem
 	//Y[gid] = lx[lid];
