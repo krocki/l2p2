@@ -295,4 +295,17 @@ int cl_copy_matrix_to_host (cl_ctx* ctx, array_t<T>& dst, cl_mem device_data) {
 	return 0;
 }
 
+template <class T>
+void write_to_file(const char* fname, array_t<T> &a, bool append = true) {
+
+	std::stringstream ss;
+	ss << fname << std::endl << a << std::endl;
+	std::string tmp = ss.str();
+	write_to_file(fname, tmp, append);
+}
+
+template <class T>
+void write_to_file(const char* fname, cl_array<T> &a, bool append = true) {
+	write_to_file(fname, a.ref_host_data, append);
+}
 #endif

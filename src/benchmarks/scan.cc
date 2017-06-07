@@ -16,6 +16,7 @@
 #include <cl/cl_functions.h>
 #include <utils/perf.h>
 #include <utils/configs.h>
+#include <utils/eigen_scan.h>
 
 #include <gen/generate_tt.h>
 #include <gen/parse.h>
@@ -46,7 +47,7 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize_x = 1, int
 
 	array_t<T> eX(rows, cols);
 	eX.setRandom();
-	array_t<T> eY(1, 1);
+	array_t<T> eY(rows, cols);
 	
 	// std::cout << "ref:" << std::endl;
 	// std::cout << ref << std::endl;
@@ -58,13 +59,12 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize_x = 1, int
 	cl_array<T> x = cl_array<T> (&ocl, eX, padding);
 	cl_array<T> y = cl_array<T> (&ocl, eY, padding);
 
-	_TIMED_CALL_(eY((0,0)) = x.ref_host_data.sum(),  "h_" + op + string_format ("_r%zu_c%zu", rows, cols));
+	_TIMED_CALL_(scan(eY, x.ref_host_data),  "h_" + op + string_format ("_r%zu_c%zu", rows, cols));
 
 	// _TIMED_CALL_(eY((0,0)) = x.ref_host_data.maxCoeff(),  "h_" + op + string_format ("_r%zu_c%zu", rows, cols));
 
 	// copy host_data to device
 	x.sync_device();
-	y.ref_host_data(0,0) = 0.0f;
 	y.sync_device();
 
 	// find max in x and store in y
@@ -81,23 +81,30 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize_x = 1, int
 	// copy device data to host
 	y.sync_host();
 
-	// std::cout << op + " = \n" << y.ref_host_data << std::endl;
+	write_to_file("x.txt", x, true);
+	write_to_file("ey.txt", eY, true);
+	write_to_file("y.txt", y, true);
+	array_t<T> e = y.ref_host_data - eY;
+	write_to_file("e.txt", e, true);
 
-	T err = (y.ref_host_data - eY).cwiseAbs().maxCoeff();
+	// std::cout << "Err" << std::endl;
+        // std::cout << e << std::endl;
 
-	// std::cout << "in\n" << x.ref_host_data << std::endl;
-	std::cout << "ref res\n" << eY << std::endl;
-	std::cout << "cl y\n" << y.ref_host_data << std::endl;
+        T err = (y.ref_host_data - eY).cwiseAbs().maxCoeff();
 
-	const std::string color = (err > 1e-3f) ? ANSI_COLOR_RED : err > 1e-7f ? ANSI_COLOR_YELLOW : "";
-	const std::string keep = (err > 1e-7f) ? "\n" : "\r";
+        // std::cout << "in\n" << x.ref_host_data << std::endl;
+        // std::cout << "ref res\n" << eY << std::endl;
+        // std::cout << "cl y\n" << y.ref_host_data << std::endl;
+        std::cout << "max err " << err << std::endl;
+        const std::string color = (err > 1e-3f) ? ANSI_COLOR_RED : err > 1e-7f ? ANSI_COLOR_YELLOW : "";
+        const std::string keep = (err > 1e-7f) ? "\n" : "\r";
 
 	// const std::string message = color + "[ reduce test: op = '" + op + "', size = " + std::to_string(x.rows()) + " x " + std::to_string(x.cols()) + " ( " + std::to_string (x.rows() * x.cols()) + " ) " + " ] --->  ERR: " + std::to_string(err) + ANSI_COLOR_RESET + "; " + cl_config_string + keep;
 
 	// std::cout << message;
 	total_runs++;
 
-	if (err > 1e-6f) {
+	if (err > 1e-3f) {
 		total_errors++;
 		pdata[perf_key].errors++;
 	}
@@ -219,8 +226,9 @@ int main (int argc, char** argv) {
 				std::string fname = outpath + kname + ".cl";
 
 				write_to_file (fname, k_code, true);
-
-				std::cout << "generated \"" + i + "\" :\n>>>>>>>>>>>>>>>\n" + k_code + "\n<<<<<<<<<<<<<<<\nwritten to: " + fname + "\n";
+				std::string debug_content = "generated \"" + i + "\" :\n>>>>>>>>>>>>>>>\n" + k_code + "\n<<<<<<<<<<<<<<<\nwritten to: " + fname + "\n";
+				write_to_file("debug_f.txt", debug_content, true);
+				//std::cout << "generated \""  + i + "\" :\n>>>>>>>>>>>>>>>\n" + k_code + "\n<<<<<<<<<<<<<<<\nwritten to: " + fname + "\n";
 
 				ocl.add_program(kname, fname);
 				ocl.add_kernel (kname, kname);

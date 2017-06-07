@@ -13,8 +13,7 @@ __global const float* restrict X) {
 	// load to local mem
 	__local float lx[$LX$];
 	__local float lx2[$LX$];
-        lx[lid] = 1;//gid;//X[gid];
-	//printf("#0 lid %d #0 wid %d gid %d, lx[lid] = %f\n", lid, wid, gid, lx[lid]);	
+        lx[lid] = X[gid];
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	// ver #1 - simple
@@ -68,33 +67,30 @@ __global const float* restrict X) {
         }
 
         barrier(CLK_GLOBAL_MEM_FENCE);
-
-        // 2nd pass
-        lx2[lid] = Y[lid];
-        for (offset = 1; offset < $WX$; offset <<= 1) {
-		//printf("lid %d, off %d\n", lid, offset);
-		if ((lid+1) % (offset*2) == 0) {	// ver #2 - unrolled
-			lx2[lid] = lx2[lid-offset] + lx2[lid];	// #if $LX$ > 1
+	
+	// 2nd pass
+	if (lid < $WX$) {
+		lx2[lid] = Y[lid];
+		for (offset = 1; offset < $WX$; offset <<= 1) {
+			if ((lid+1) % (offset*2) == 0) {
+				lx2[lid] = lx2[lid-offset] + lx2[lid];
+			}
+			barrier(CLK_LOCAL_MEM_FENCE);
 		}
-		barrier(CLK_LOCAL_MEM_FENCE);	// #endif
+		for (offset = $WX$/2; offset > 1; offset >>= 1) {
+			if ((lid+1) % offset == 0) {
+				lx2[lid+offset/2] = lx2[lid+offset/2] + lx2[lid];
+			}
+			barrier(CLK_LOCAL_MEM_FENCE);
+		}
 	}
-
-        for (offset = $WX$/2; offset > 1; offset >>= 1) {	// #endif
-                if ((lid+1) % offset == 0) {
-                        lx2[lid+offset/2] = lx2[lid+offset/2] + lx2[lid];	// #if $LX$ > 32
-                }
-                barrier(CLK_LOCAL_MEM_FENCE);	// #endif
-        }
 
         //int inclusive = 0;
         //if (inclusive) { /*nothing*/ } else { lx[lid] = lid > 0 ? lx[lid-1] : 0.0f;}
 
         if (wid > 0)
-        lx[lid] += lx2[wid-1];
+		lx[lid] += lx2[wid-1];
 
-	printf("#0 lid %d #0 wid %d gid %d, lx[lid] = %f\n", lid, wid, gid, lx[lid]);
 	// write to global mem
-	// printf("#1 lid %d #0 wid %d gid %d, lx[lid] = %f\n", lid, wid, gid, lx2[lid]);
-	//Y[gid] = lx[lid];
-
+	Y[gid] = lx[lid];
 }
