@@ -299,7 +299,7 @@ template <class T>
 void write_to_file(const char* fname, array_t<T> &a, bool append = true) {
 
 	std::stringstream ss;
-	ss << fname << std::endl << a << std::endl;
+	ss << fname << std::endl << std::setprecision(3) << a << std::endl;
 	std::string tmp = ss.str();
 	write_to_file(fname, tmp, append);
 }

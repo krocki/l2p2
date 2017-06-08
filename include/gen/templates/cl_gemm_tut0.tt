@@ -1,0 +1,20 @@
+// k_gen_ORDER_BLKSIZE_cl_gemm
+__kernel void k_gen_M_$ORDER$_N_$ORDER$_K_$ORDER$_B_$BLKSZ$_W_$WX$_cl_gemm_tut0_(__global $T$* restrict C, const __global $T$* restrict A, const __global $T$* restrict B) {
+	// Thread identifiers
+	const int globalRow = get_global_id(0) / $ORDER$; // Row ID of C (0..M)
+	const int globalCol = get_global_id(0) % $ORDER$; // Col ID of C (0..N)
+
+	const int M = $ORDER$;
+	const int N = $ORDER$;
+	const int K = $ORDER$;
+
+	// Compute a single element (loop over K)
+	float acc = 0.0f;
+	for (int k=0; k<K; k++) {
+		acc += A[k*M + globalRow] * B[globalCol*K + k];
+	}
+
+	// Store the result
+	C[globalCol*M + globalRow] = acc;
+}
+

@@ -50,10 +50,10 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize_x = 1, int
 	eA.setRandom();
 	eB.setRandom();
 
-	std::cout << "eA:" << std::endl;
-	std::cout << eA << std::endl;
-	std::cout << "eB:" << std::endl;
-	std::cout << eB << std::endl;
+	//std::cout << "eA:" << std::endl;
+	//std::cout << eA << std::endl;
+	//std::cout << "eB:" << std::endl;
+	//std::cout << eB << std::endl;
 	// make an opencl copy of the eigen array
 	size_t padding = lsize_x * ngroups_x * lsize_y * ngroups_y * vecn;
 	//std::cout << "padding: " << lsize << ", " << ngroups << ", " << vecn << ", = " << padding << std::endl;
@@ -64,8 +64,8 @@ int run_benchmark(size_t rows, size_t cols, std::string op, int lsize_x = 1, int
 
 	_TIMED_CALL_(eC = eA * eB,  "h_gemm" + string_format ("_r%zu_c%zu", rows, cols));
 
-	std::cout << "eC:" << std::endl;
-	std::cout << eC << std::endl;
+	//std::cout << "eC:" << std::endl;
+	//std::cout << eC << std::endl;
 
 	// copy host_data to device
 	A.sync_device();
@@ -159,8 +159,10 @@ int main (int argc, char** argv) {
 
 		int msize = 16;
 		if (argc > 8) { msize = std::atoi(argv[8]); }
-
 		int blksz = msize*msize;
+		if (argc > 9) {
+			blksz = std::atoi(argv[9]);
+		}
 
 		std::string debug_fname = "debug_" + generic_name + "_" + func_name + ".txt";
 		std::string results_fname = "bench_" + generic_name + "_" + func_name + ".txt";
@@ -187,12 +189,12 @@ int main (int argc, char** argv) {
 		std::cout << ocl.current_device_properties.device_string + " : " + ocl.current_device_properties.vendor_str + " ";
 
 
-		if (is_cpu(ocl.current_device_properties)) {
-
+		//if (is_cpu(ocl.current_device_properties)) {
+		if (false) {
 			std::cout << "CPU" << std::endl;
 			//std::generate_n(rs.begin(), rs.size(), [] { static int i {1 << 22}; return i <<= 2; });
-			ws_x = {1};
-			ls_x = {msize*msize};
+			ws_x = {(msize/blksz) * (msize/blksz)};
+			ls_x = {blksz*blksz};
 			ws_y = {1};
 			ls_y = {1};
 			kk_iters = 1;
@@ -200,10 +202,10 @@ int main (int argc, char** argv) {
 		} else {
 
 			std::cout << "GPU" << std::endl;
-			ws_x = {1};
-			ls_x = {msize*msize};
-			ws_y = {1};
-			ls_y = {1};
+			ws_y = {msize/blksz};
+			ws_x = {msize/blksz};
+			ls_x = {blksz};
+			ls_y = {blksz};
 			kk_iters = 1;
 
 		}
