@@ -184,6 +184,7 @@ std::string exec_cl_gemm (cl_array<float>& C, cl_array<float>& A, cl_array<float
 
 	int n = C.device_data_size;
 
+	float acc_val = 0.0f;
 	std::string cl_config_string = "";
 
 	//which cl context to use
@@ -220,6 +221,7 @@ std::string exec_cl_gemm (cl_array<float>& C, cl_array<float>& A, cl_array<float
 		clWaitForEvents (1, &__ctx->cl_events[func_string]);
 	}
 
+	C.set(acc_val);
 	// /* Execute the kernel */
 
 	CL_SAFE_CALL (clEnqueueNDRangeKernel (__ctx->queue(), __ctx->cl_kernels[kernel_op], 2, NULL, global_work_size, local_work_size, 0, NULL, &__ctx->cl_events[func_string]) );

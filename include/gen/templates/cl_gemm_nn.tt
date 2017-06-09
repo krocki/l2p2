@@ -4,41 +4,45 @@
 __kernel void k_gen_M_$ORDER$_N_$ORDER$_K_$ORDER$_B_$BLKSZ$_W_$WX$_$WY$_cl_gemm_nn_(__global $T$* restrict C, const __global $T$* restrict A, const __global $T$* restrict B) {
 
 	const int bx = get_group_id(0);
-	const int tx = get_global_id(0);
+	const int tx = get_local_id(0);
 	const int by = get_group_id(1);
-	const int ty = get_global_id(1);
-	const int gid = ty + $WY$ * $LY$ * tx;
+	const int ty = get_local_id(1);
+	const int gid = tx + $WY$ * $LY$ * ty;
 
-	if (gid == 0) printf("gid %d A %d, B %d, C %d\n", gid, A, B, C);
+	printf("#1 gid %d, bx %d, by %d, tx %d, ty %d, A %d [%f], B %d [%f], C %d [%f]\n", gid, bx, by, tx, ty, A, A[0], B, B[0], C, C[0]);
 
-	A += bx * 64 + tx + ty * 16;
-	B += tx + (by * 16 + ty) * $ORDER$;
-	C += bx * 64 + tx + (ty + by * $ORDER$) * 16;
+	printf("#2 gid %d, bx %d, by %d, tx %d, ty %d, A %d [%f], B %d [%f], C %d [%f]\n", gid, bx, by, tx, ty, A, A[0], B, B[0], C, C[0]);
 
-	printf("gid %d, bx %d, by %d, tx %d, ty %d, A %d, B %d, C %d\n", gid, bx, by, tx, ty, A, B, C);
+	const int lda = $ORDER$;
+	const int ldb = $ORDER$;
+	const int ldc = $ORDER$;
+	const float alpha = 1.0f;
+	const float beta = 0.0f;
 
-	__local $T$ bs[16][17];
-	$T$ c[16];
-
-	for (int i = 0; i < 16; i+= 4)
-		bs[tx][ty+i] = B[i*$ORDER$];
-
-	B += 16;
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-	for (int i = 0; i < 16; i++, A += $ORDER$) {
-		c[0] += A[0]*bs[i][0]; c[1] += A[0]*bs[i][1];
-		c[2] += A[0]*bs[i][2]; c[3] += A[0]*bs[i][3];
-		c[4] += A[0]*bs[i][4]; c[5] += A[0]*bs[i][5];
-		c[6] += A[0]*bs[i][6]; c[7] += A[0]*bs[i][7];
-		c[8] += A[0]*bs[i][8]; c[9] += A[0]*bs[i][9];
-		c[10] += A[0]*bs[i][10];c[11] += A[0]*bs[i][11];
-		c[12] += A[0]*bs[i][12];c[13] += A[0]*bs[i][13];
-		c[14] += A[0]*bs[i][14];c[15] += A[0]*bs[i][15];
+	A += bx * 64 + tx + ty*16;
+	B += tx + ( by * 16 + ty ) * ldb;
+	C += bx * 64 + tx + (ty + by * ldc ) * 16;
+	__local float bs[16][17];
+	float c[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	{
+#pragma unroll
+		for( int i = 0; i < 16; i += 4 )
+			bs[tx][ty+i] = B[i*ldb];
+		B += 16;
+		barrier(CLK_LOCAL_MEM_FENCE);
+#pragma unroll
+		for( int i = 0; i < 16; i++, A += lda )
+		{
+			c[0] += A[0]*bs[i][0]; c[1] += A[0]*bs[i][1]; c[2] += A[0]*bs[i][2]; c[3] += A[0]*bs[i][3];
+			c[4] += A[0]*bs[i][4]; c[5] += A[0]*bs[i][5]; c[6] += A[0]*bs[i][6]; c[7] += A[0]*bs[i][7];
+			c[8] += A[0]*bs[i][8]; c[9] += A[0]*bs[i][9]; c[10] += A[0]*bs[i][10]; c[11] += A[0]*bs[i][11];
+			c[12] += A[0]*bs[i][12]; c[13] += A[0]*bs[i][13]; c[14] += A[0]*bs[i][14]; c[15] += A[0]*bs[i][15];
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
 	}
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-	for (int i = 0; i < 16; i++, C += $ORDER$)
-		C[0] += c[i];
+	for( int i = 0; i < 16; i++, C += ldc )
+		C[0] = alpha*c[i] + beta*C[0];
+	
+	
 }
 

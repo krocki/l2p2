@@ -163,6 +163,8 @@ int main (int argc, char** argv) {
 		if (argc > 9) {
 			blksz = std::atoi(argv[9]);
 		}
+		int thick = 16;
+		if (argc > 10) { thick = std::atoi(argv[10]); }
 
 		std::string debug_fname = "debug_" + generic_name + "_" + func_name + ".txt";
 		std::string results_fname = "bench_" + generic_name + "_" + func_name + ".txt";
@@ -175,6 +177,9 @@ int main (int argc, char** argv) {
 		std::cout << "# of samples = " << bench_iters << "; ";
 		std::cout << "size = " << "2^" << psize << "; ";
 		std::cout << "fastmath = " << ocl.use_fast_math << "; ";
+		std::cout << "msize = " << msize << "; ";
+		std::cout << "blksz = " << blksz << "; ";
+		std::cout << "thick = " << thick << "; ";
 		init_cl(requested_device);
 
 		std::vector<int> rs = {msize};
@@ -184,6 +189,7 @@ int main (int argc, char** argv) {
 		std::vector<int> vs = {1};
 		std::vector<int> hs = {0}; //__attribute__((vec_type_hint(T)))
 		std::vector<int> us = {0};
+		std::vector<int> crs = {thick};
 		int kk_iters;
 
 		std::cout << ocl.current_device_properties.device_string + " : " + ocl.current_device_properties.vendor_str + " ";
@@ -197,6 +203,7 @@ int main (int argc, char** argv) {
 			ls_x = {blksz*blksz};
 			ws_y = {1};
 			ls_y = {1};
+			crs = {thick};
 			kk_iters = 1;
 
 		} else {
@@ -206,11 +213,12 @@ int main (int argc, char** argv) {
 			ws_x = {msize/blksz};
 			ls_x = {blksz};
 			ls_y = {blksz};
+			crs = {thick};
 			kk_iters = 1;
 
 		}
 
-		auto configurations = generate_configurations(RANDOM_SHUFFLE, rs, cs, ls_x, ls_y, ws_x, ws_y, vs, hs, us);
+		auto configurations = generate_configurations(RANDOM_SHUFFLE, rs, cs, ls_x, ls_y, ws_x, ws_y, vs, hs, us, crs);
 
 		long double top_gb = 0;
 		std::string conf_str_gb = "";
@@ -235,6 +243,7 @@ int main (int argc, char** argv) {
 			int v = std::get<6>(config);
 			int h = std::get<7>(config);
 			int u = std::get<8>(config);
+			int cr = std::get<9>(config);
 			int g = lx * wx * ly * wy;
 			int n = round_up_multiple(r * c, g * v); // round up to the nearest multiple of a block of threads
 			assert (n % (g * v) == 0);
@@ -255,6 +264,7 @@ int main (int argc, char** argv) {
 			values["$G$"] = std::to_string(g);
 			//values["$WX$"] = std::to_string(msize / lx);
 			values["$BLKSZ$"] = std::to_string(blksz);
+			values["$CR$"] = std::to_string(cr);
 			values["$NUM_BLK$"] = std::to_string(msize / blksz);
 			values["$WY$"] = std::to_string(msize / ly);
 			values["$A_INC$"] = std::to_string(msize * lx);
