@@ -158,14 +158,31 @@ int main (int argc, char** argv) {
 		if (argc > 7) { ocl.use_fast_math = std::atoi(argv[7]); }
 
 		int msize = 16;
+		
 		if (argc > 8) { msize = std::atoi(argv[8]); }
-		int blksz = msize*msize;
-		if (argc > 9) {
-			blksz = std::atoi(argv[9]);
-		}
-		int thick = 16;
-		if (argc > 10) { thick = std::atoi(argv[10]); }
+	
+		int lx = 1;
+		int ly = 1;
 
+		if (argc > 9) {
+			lx = std::atoi(argv[9]);
+		}
+		if (argc > 10) {
+			ly = std::atoi(argv[10]);
+		}
+
+		int wx = 1;
+		int wy = 1;
+
+		if (argc > 11) {
+			wx = std::atoi(argv[11]);
+		}
+		if (argc > 12) {
+			wy = std::atoi(argv[12]);
+		}
+
+		int thick = 16;
+		if (argc > 13) { thick = std::atoi(argv[13]); }
 		std::string debug_fname = "debug_" + generic_name + "_" + func_name + ".txt";
 		std::string results_fname = "bench_" + generic_name + "_" + func_name + ".txt";
 
@@ -178,7 +195,6 @@ int main (int argc, char** argv) {
 		std::cout << "size = " << "2^" << psize << "; ";
 		std::cout << "fastmath = " << ocl.use_fast_math << "; ";
 		std::cout << "msize = " << msize << "; ";
-		std::cout << "blksz = " << blksz << "; ";
 		std::cout << "thick = " << thick << "; ";
 		init_cl(requested_device);
 
@@ -199,20 +215,20 @@ int main (int argc, char** argv) {
 		if (false) {
 			std::cout << "CPU" << std::endl;
 			//std::generate_n(rs.begin(), rs.size(), [] { static int i {1 << 22}; return i <<= 2; });
-			ws_x = {(msize/blksz) * (msize/blksz)};
-			ls_x = {blksz*blksz};
-			ws_y = {1};
-			ls_y = {1};
+			ws_x = {wx};
+			ls_x = {lx};
+			ws_y = {wy};
+			ls_y = {ly};
 			crs = {thick};
 			kk_iters = 1;
 
 		} else {
 
 			std::cout << "GPU" << std::endl;
-			ws_y = {msize/blksz};
-			ws_x = {msize/blksz};
-			ls_x = {blksz};
-			ls_y = {blksz};
+			ws_x = {wx};
+			ls_x = {lx};
+			ws_y = {wy};
+			ls_y = {ly};
 			crs = {thick};
 			kk_iters = 1;
 
@@ -260,13 +276,12 @@ int main (int argc, char** argv) {
 			values["$H$"] = std::to_string(h);
 			values["$LX$"] = std::to_string(lx);
 			values["$WX$"] = std::to_string(wx);
+			values["$WY$"] = std::to_string(wy);
 			values["$LY$"] = std::to_string(ly);
 			values["$G$"] = std::to_string(g);
 			//values["$WX$"] = std::to_string(msize / lx);
-			values["$BLKSZ$"] = std::to_string(blksz);
 			values["$CR$"] = std::to_string(cr);
-			values["$NUM_BLK$"] = std::to_string(msize / blksz);
-			values["$WY$"] = std::to_string(msize / ly);
+			//values["$NUM_BLK$"] = std::to_string(msize / blksz);
 			values["$A_INC$"] = std::to_string(msize * lx);
 			values["$B_INC$"] = std::to_string(lx);
 			values["$TRANS$"] = std::to_string(u);
