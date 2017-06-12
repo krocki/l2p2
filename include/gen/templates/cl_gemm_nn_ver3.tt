@@ -1,0 +1,97 @@
+#define SAXPY16( _A_, _BS_ , _C_) \
+		_C_[0] += _A_ * _BS_[0]; \
+		_C_[1] += _A_ * _BS_[1]; \
+		_C_[2] += _A_ * _BS_[2]; \
+		_C_[3] += _A_ * _BS_[3]; \
+		_C_[4] += _A_ * _BS_[4]; \
+		_C_[5] += _A_ * _BS_[5]; \
+		_C_[6] += _A_ * _BS_[6]; \
+		_C_[7] += _A_ * _BS_[7]; \
+		_C_[8] += _A_ * _BS_[8]; \
+		_C_[9] += _A_ * _BS_[9]; \
+		_C_[10] += _A_ * _BS_[10]; \
+		_C_[11] += _A_ * _BS_[11]; \
+		_C_[12] += _A_ * _BS_[12]; \
+		_C_[13] += _A_ * _BS_[13]; \
+		_C_[14] += _A_ * _BS_[14]; \
+		_C_[15] += _A_ * _BS_[15]; \
+
+#define SAXPY8( _A_, _BS_ , _C_) \
+		_C_[0] += _A_ * _BS_[0]; \
+		_C_[1] += _A_ * _BS_[1]; \
+		_C_[2] += _A_ * _BS_[2]; \
+		_C_[3] += _A_ * _BS_[3]; \
+		_C_[4] += _A_ * _BS_[4]; \
+		_C_[5] += _A_ * _BS_[5]; \
+		_C_[6] += _A_ * _BS_[6]; \
+		_C_[7] += _A_ * _BS_[7]; \
+
+#define SAXPY4( _A_, _BS_ , _C_) \
+		_C_[0] += _A_ * _BS_[0]; \
+		_C_[1] += _A_ * _BS_[1]; \
+		_C_[2] += _A_ * _BS_[2]; \
+		_C_[3] += _A_ * _BS_[3]; \
+
+#define SAXPY2( _A_, _BS_ , _C_) \
+		_C_[0] += _A_ * _BS_[0]; \
+		_C_[1] += _A_ * _BS_[1]; \
+
+#define SAXPY_4 \
+		SAXPY$LX$( a[0], bs[ii+0], c );	a[0] = A[0*lda];\
+		SAXPY$LX$( a[1], bs[ii+1], c );	a[1] = A[1*lda];\
+		SAXPY$LX$( a[2], bs[ii+2], c );	a[2] = A[2*lda];\
+		SAXPY$LX$( a[3], bs[ii+3], c );	a[3] = A[3*lda];
+
+#define SAXPY_2 \
+		SAXPY$LX$( a[0], bs[ii+0], c );	a[0] = A[0*lda];\
+		SAXPY$LX$( a[1], bs[ii+1], c );	a[1] = A[1*lda];\
+
+#define SAXPY_1 \
+		SAXPY$LX$( a[0], bs[ii+0], c );	a[0] = A[0*lda];\
+
+	__kernel void k_gen_M_$ORDER$_N_$ORDER$_K_$ORDER$_B_$LX$_$LY$_W_$WX$_$WY$_cl_gemm_nn_ver3_(__global $T$* restrict C, const __global $T$* restrict A, const __global $T$* restrict B) {
+
+		const int lda = $ORDER$;
+		const int ldb = $ORDER$;
+		const int ldc = $ORDER$;
+		const $T$ alpha = ($T$)1;
+		const $T$ beta = ($T$)0;
+
+		const int inx = get_local_id(0);
+		const int iny = get_local_id(1);
+		const int ibx = get_group_id(0) * ($LX$ * $LY$);
+		const int iby = get_group_id(1) * ($LX$);
+		const int id = inx + iny * ($LX$);
+
+		int i, j, ii;
+
+		A += ibx + id; B += inx + (iby+iny) * ldb; C += ibx + id  + (iby*ldc);
+
+		$T$ c[$LX$];
+		__local $T$ bs[$LX$][$LX$+1];
+
+		#pragma unroll $LX$
+		for (i=0; i<$LX$; ++i) { c[i] = 0.0; }
+
+		#pragma unroll $ORDER$/$LX$
+		for (int KKK = 0; KKK < $ORDER$/$LX$; KKK++, B += $LX$)
+		{
+			__private $T$ a[$LY$];
+			
+			#pragma unroll $LY$
+			for (ii=0; ii<$LY$; ++ii) { a[ii] = A[ii*lda]; }
+
+			#pragma unroll $LX$/$LY$
+			for (ii=0; ii<$LX$; ii += $LY$) { bs[inx][iny+ii] = B[ii*ldb]; }
+
+			barrier(CLK_LOCAL_MEM_FENCE);
+
+			#pragma unroll $LX$/$LY$
+			for (ii=0; ii<$LX$; ii += $LY$) { A += $LY$*lda; SAXPY_$LY$ }
+
+			barrier(CLK_LOCAL_MEM_FENCE);
+		}
+
+		#pragma unroll $LX$
+		for( int i = 0; i < $LX$; i++, C += ldc ){ C[0] = alpha*c[i] + beta*C[0]; }
+	}

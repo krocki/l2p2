@@ -147,7 +147,6 @@ int main (int argc, char** argv) {
 
 		std::vector<std::string> gen_list = {generic_name};
 		std::string outpath = "../kernels/generated/src/";
-
 		if (argc > 4) { outpath = std::string(argv[4]); }
 
 		int bench_iters = 4;
@@ -171,15 +170,19 @@ int main (int argc, char** argv) {
 			ly = std::atoi(argv[10]);
 		}
 
-		int wx = 1;
-		int wy = 1;
+		//int wx = 1;
+		//int wy = 1;
 
-		if (argc > 11) {
-			wx = std::atoi(argv[11]);
-		}
-		if (argc > 12) {
-			wy = std::atoi(argv[12]);
-		}
+		//if (argc > 11) {
+		//	wx = std::atoi(argv[11]);
+		//}
+		//if (argc > 12) {
+		//	wy = std::atoi(argv[12]);
+		//}
+
+		int grid_size = msize / ly;
+		int wx = grid_size/lx;
+		int wy = grid_size/ly;
 
 		int thick = 16;
 		if (argc > 13) { thick = std::atoi(argv[13]); }

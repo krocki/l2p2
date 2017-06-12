@@ -1,0 +1,57 @@
+
+// http://www.cs.colostate.edu/~cs675/volkov08-sc08talk.pdf
+
+// k_gen_ORDER_BLKSIZE_cl_gemm
+__kernel void k_gen_M_$ORDER$_N_$ORDER$_K_$ORDER$_B_$LX$_$LY$_W_$WX$_$WY$_cl_gemm_nn_ver2_(__global $T$* restrict C, const __global $T$* restrict A, const __global $T$* restrict B) {
+
+	const int bx = get_group_id(0);
+	const int by = get_group_id(1);
+	const int tx = get_local_id(0);
+	const int ty = get_local_id(1);
+
+	const int lda = $ORDER$;
+	const int ldb = $ORDER$;
+	const int ldc = $ORDER$;
+	const int k = $ORDER$;
+	const float alpha = 1.0f;
+	const float beta = 0.0f;
+
+	int a_offset = 0;
+	int b_offset = 0;
+	int c_offset = 0;
+
+	a_offset += bx * ($LX$ * $LY$) + tx + ty*$LX$;
+	b_offset += tx + (by * $LX$ + ty) * ldb;
+	c_offset += bx * ($LX$ * $LY$) + tx + (ty + by * ldc) * $LX$;
+
+	//printf("#1 tx %d ty %d bx %d by %d offa %d offb %d offc %d, %f, %f, %f, %f\n", tx, ty, bx, by, a_offset, b_offset, c_offset, B[b_offset+0*ldb], B[b_offset+1*ldb], B[b_offset+2*ldb], B[b_offset+3*ldb]);
+
+	const int iters = $ORDER$/$LX$;
+
+	float c[$LX$];
+	for (int i = 0; i< $LX$; i++) c[i] = 0.0f;
+
+	__local float bs[$LX$][$LY$*4+1];
+	
+	for (int kk = 0; kk < iters; kk++) {
+		
+		for (int i = 0; i < $LY$*4; i+=$LY$) bs[tx][ty+i] = B[b_offset+i*ldb];
+		
+		b_offset += $LY$*4;
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		// 4 here because ly*4 == 4?
+		for (int i = 0; i < $LY$*4; i++, a_offset += lda ) {
+
+		//	printf("#2 tx %d ty %d bx %d by %d\n c[0] += A[%d]*bs[%d][0] (%f * %f)\n, c[1] += A[%d]*bs[%d][1] (%f * %f)\n, c[2] += A[%d]*bs[%d][2] (%f * %f)\n, c[3] += A[%d]*bs[%d][3] (%f * %f)\n", tx, ty, bx, by, a_offset, i, A[a_offset], bs[i][0] , a_offset, i, A[a_offset], bs[i][1] , a_offset, i, A[a_offset], bs[i][2], a_offset, i, A[a_offset], bs[i][3]);
+
+			for (int j = 0; j < $LY$*4; j++) c[j] += A[a_offset]*bs[i][j];
+		}
+		
+		barrier(CLK_LOCAL_MEM_FENCE);
+	}
+
+	for( int i = 0; i < $LX$; i++, c_offset += ldc )
+		C[c_offset] = alpha*c[i] + beta*C[c_offset];
+}
+
